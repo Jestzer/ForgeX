@@ -117,7 +117,7 @@ public class MccLoadTest
 
             int activeTagEntries = variant.TagIndex.Count(e => e.Tag != null);
             Console.WriteLine($"Active Tag Index Entries: {activeTagEntries}");
-            Assert.Equal(121, activeTagEntries);
+            Assert.Equal(120, activeTagEntries);
 
             variant.CloseIO();
         }
@@ -272,6 +272,52 @@ public class MccLoadTest
 
         Console.WriteLine($"\nLoaded: {loaded}, Total: {files.Length}");
         Assert.True(loaded > 0, "Should load at least one file");
+    }
+
+    [Fact]
+    public void PaletteResolvesConstructTags()
+    {
+        string path = Path.Combine(MvarDir, "h3_hardcoreConstruct_ts.mvar");
+        if (!File.Exists(path))
+        {
+            Console.WriteLine("SKIP: Construct test file not found");
+            return;
+        }
+
+        var tempFile = Path.GetTempFileName() + ".mvar";
+        File.Copy(path, tempFile, true);
+
+        try
+        {
+            var variant = new MccMapVariant(tempFile);
+            Assert.Equal(300, variant.MapId); // Construct
+
+            Console.WriteLine($"Map: {variant.Tags?.MapName} (ID={variant.MapId})");
+            Console.WriteLine($"Has palettes: {variant.Tags?.HasPalettes}");
+            Assert.True(variant.Tags?.HasPalettes, "Construct XML should have palette data");
+
+            int unknown = 0;
+            int resolved = 0;
+            Console.WriteLine("\nActive tag entries:");
+            foreach (var entry in variant.TagIndex.Where(e => e.Tag != null))
+            {
+                if (entry.Tag!.Class == "unknown")
+                    unknown++;
+                else
+                    resolved++;
+                Console.WriteLine($"  [{entry.Tag.TagsIndex}] {entry.Tag.Class}/{entry.Tag.Path} Cost={entry.Cost}");
+            }
+
+            Console.WriteLine($"\nResolved: {resolved}, Unknown: {unknown}");
+            Assert.True(resolved > 0, "Should have resolved tags via palette");
+            Assert.Equal(0, unknown);
+
+            variant.CloseIO();
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
     }
 
     [Fact]

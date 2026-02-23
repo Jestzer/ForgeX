@@ -146,6 +146,16 @@ public class MccMapVariant : IMapVariantData
             entry.Read(reader, Tags);
             if (entry.Tag != null)
                 entry.Tag.TagsIndex = i;
+            else if (entry.Ident != 0 && entry.Ident != -1)
+            {
+                // Try palette lookup (MCC v13 files use palette indices instead of tag idents)
+                var paletteTag = Tags?.FindTagByPaletteIndex(entry.Ident);
+                if (paletteTag != null)
+                {
+                    entry.Tag = paletteTag;
+                    entry.Tag.TagsIndex = i;
+                }
+            }
             TagIndex.Add(entry);
         }
 
@@ -375,6 +385,19 @@ public class MccMapVariant : IMapVariantData
             entry.Tag = Tags?.FindTag(entry.Ident);
             if (entry.Tag != null)
                 entry.Tag.TagsIndex = i;
+            else if (entry.Ident != 0 && entry.Ident != -1)
+            {
+                // Try palette lookup (MCC v13 files use palette indices instead of tag idents)
+                var paletteTag = Tags?.FindTagByPaletteIndex(entry.Ident);
+                if (paletteTag != null)
+                {
+                    entry.Tag = paletteTag;
+                    entry.Tag.TagsIndex = i;
+                }
+                // Entries with palette types beyond the 7 known categories (Vehicle-Spawner)
+                // are engine-internal and have no palette data — leave Tag null so they
+                // don't appear in the tag tree.
+            }
             entry.RunTimeMinimum = (byte)bits.ReadInteger(8);    // minimum_count
             entry.RunTimeMaximum = (byte)bits.ReadInteger(8);    // maximum_count
             entry.CountOnMap = (byte)bits.ReadInteger(8);        // placed_on_map

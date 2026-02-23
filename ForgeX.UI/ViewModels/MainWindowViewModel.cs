@@ -1,8 +1,10 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ForgeX.Core.Blf;
 using ForgeX.Core.Halo3;
 using ForgeX.Core.Xbox360;
+using ForgeX.UI.Services;
 
 namespace ForgeX.UI.ViewModels;
 
@@ -14,10 +16,16 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private bool _isFileLoaded;
     [ObservableProperty] private string _windowTitle = "ForgeX - Halo 3 Forge Usermap Editor";
     [ObservableProperty] private bool _isXbox360Format;
+    [ObservableProperty] private ObservableCollection<RecentFileItem> _recentFiles = new();
 
     private StfsContainer? _container;
     private IMapVariantData? _variant;
     private string? _currentFilePath;
+
+    public MainWindowViewModel()
+    {
+        LoadRecentFiles();
+    }
 
     public void OpenFile(string filePath)
     {
@@ -63,12 +71,25 @@ public partial class MainWindowViewModel : ViewModelBase
             if (_variant is MccMapVariant mcc && mcc.DecompressedPath != null)
                 StatusMessage += $" — Decompressed copy: {Path.GetFileName(mcc.DecompressedPath)}";
             WindowTitle = $"ForgeX - {_variant.VariantName} ({MapHeader.MapName})";
+
+            // Add to recent files
+            RecentFilesService.Add(filePath);
+            LoadRecentFiles();
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error: {ex.Message}";
             IsFileLoaded = false;
         }
+    }
+
+    [RelayCommand]
+    private void OpenRecentFile(string filePath)
+    {
+        if (File.Exists(filePath))
+            OpenFile(filePath);
+        else
+            StatusMessage = $"File not found: {Path.GetFileName(filePath)}";
     }
 
     [RelayCommand]
@@ -126,5 +147,24 @@ public partial class MainWindowViewModel : ViewModelBase
         IsXbox360Format = false;
         MapHeader = new MapHeaderViewModel();
         TagBrowser = new TagBrowserViewModel();
+    }
+
+    private void LoadRecentFiles()
+    {
+        RecentFiles.Clear();
+        foreach (var path in RecentFilesService.Load())
+            RecentFiles.Add(new RecentFileItem(path));
+    }
+}
+
+public class RecentFileItem
+{
+    public string FilePath { get; }
+    public string DisplayName { get; }
+
+    public RecentFileItem(string filePath)
+    {
+        FilePath = filePath;
+        DisplayName = Path.GetFileName(filePath);
     }
 }

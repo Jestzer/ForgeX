@@ -10,6 +10,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        RefreshRecentFilesMenu();
     }
 
     private async void OnOpenFileClick(object? sender, RoutedEventArgs e)
@@ -35,7 +36,38 @@ public partial class MainWindow : Window
             if (path != null && DataContext is MainWindowViewModel vm)
             {
                 vm.OpenFile(path);
+                RefreshRecentFilesMenu();
             }
+        }
+    }
+
+    private void RefreshRecentFilesMenu()
+    {
+        if (DataContext is not MainWindowViewModel vm) return;
+
+        RecentFilesMenu.Items.Clear();
+
+        if (vm.RecentFiles.Count == 0)
+        {
+            var emptyItem = new MenuItem { Header = "(No recent files)", IsEnabled = false };
+            RecentFilesMenu.Items.Add(emptyItem);
+            return;
+        }
+
+        foreach (var recent in vm.RecentFiles)
+        {
+            var item = new MenuItem { Header = recent.DisplayName, Tag = recent.FilePath };
+            item.Click += OnRecentFileClick;
+            RecentFilesMenu.Items.Add(item);
+        }
+    }
+
+    private void OnRecentFileClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem item && item.Tag is string filePath && DataContext is MainWindowViewModel vm)
+        {
+            vm.OpenRecentFileCommand.Execute(filePath);
+            RefreshRecentFilesMenu();
         }
     }
 

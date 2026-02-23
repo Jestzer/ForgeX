@@ -9,6 +9,8 @@ namespace ForgeX.Core.Halo3;
 public class TagDatabase
 {
     private readonly List<Tag> _tags = new();
+    // Palette: category index (0=Vehicle,1=Weapon,...) → list of (ident, name) entries
+    private readonly Dictionary<int, List<PaletteEntry>> _palettes = new();
 
     public IReadOnlyList<Tag> AllTags => _tags.AsReadOnly();
     public int TagCount => _tags.Count;
@@ -28,27 +30,47 @@ public class TagDatabase
         ParseXml(xmlData);
     }
 
+    private static readonly string[] PaletteCategoryNames =
+        { "Vehicle", "Weapon", "Equipment", "Scenery", "Teleporter", "Goal", "Spawner" };
+
     private void ParseXml(string xmlData)
     {
         using var reader = XmlReader.Create(new StringReader(xmlData));
         while (reader.Read())
         {
-            if (reader.NodeType != XmlNodeType.Element || reader.Name != "Map")
+            if (reader.NodeType != XmlNodeType.Element)
                 continue;
 
-            int tagCount = Convert.ToInt32(reader.GetAttribute("TagCount"));
-            while (reader.Read())
+            if (reader.Name == "Tag")
             {
-                if (reader.NodeType == XmlNodeType.Element && reader.Name == "Tag")
+                var tag = new Tag
                 {
-                    var tag = new Tag
+                    Class = reader.GetAttribute("Class") ?? string.Empty,
+                    Path = reader.GetAttribute("Path") ?? string.Empty,
+                    Ident = Convert.ToInt32(reader.GetAttribute("Ident"))
+                };
+                _tags.Add(tag);
+            }
+            else if (reader.Name == "Palette")
+            {
+                string category = reader.GetAttribute("Category") ?? string.Empty;
+                int catIndex = Array.IndexOf(PaletteCategoryNames, category);
+                if (catIndex < 0) continue;
+
+                var entries = new List<PaletteEntry>();
+                using var paletteReader = reader.ReadSubtree();
+                while (paletteReader.Read())
+                {
+                    if (paletteReader.NodeType == XmlNodeType.Element && paletteReader.Name == "Entry")
                     {
-                        Class = reader.GetAttribute("Class") ?? string.Empty,
-                        Path = reader.GetAttribute("Path") ?? string.Empty,
-                        Ident = Convert.ToInt32(reader.GetAttribute("Ident"))
-                    };
-                    _tags.Add(tag);
+                        entries.Add(new PaletteEntry
+                        {
+                            Ident = Convert.ToInt32(paletteReader.GetAttribute("Ident")),
+                            Name = paletteReader.GetAttribute("Name") ?? string.Empty
+                        });
+                    }
                 }
+                _palettes[catIndex] = entries;
             }
         }
     }
@@ -90,4 +112,43 @@ public class TagDatabase
         }
         return null;
     }
+
+    /// <summary>
+    /// Looks up a tag by MCC forge palette index.
+    /// Palette indices encode (type &lt;&lt; 16) | slot, where type = category + 1.
+    /// </summary>
+    public Tag? FindTagByPaletteIndex(int paletteIndex)
+    {
+        int type = (paletteIndex >> 16) & 0xFFFF;
+        int slot = paletteIndex & 0xFFFF;
+        int catIndex = type - 1; // mvar type 1=Vehicle(cat 0), 2=Weapon(cat 1), etc.
+
+        if (!_palettes.TryGetValue(catIndex, out var entries))
+            return null;
+        if (slot < 0 || slot >= entries.Count)
+            return null;
+
+        var paletteEntry = entries[slot];
+
+        // Look up the full tag using the palette entry's real ident
+        var tag = FindTag(paletteEntry.Ident);
+        if (tag != null)
+            return tag;
+
+        // Tag ident not in the tag table — return a tag with the palette display name
+        return new Tag
+        {
+            Ident = paletteEntry.Ident,
+            Path = paletteEntry.Name,
+            Class = PaletteCategoryNames[catIndex].ToLowerInvariant()
+        };
+    }
+
+    public bool HasPalettes => _palettes.Count > 0;
+}
+
+public class PaletteEntry
+{
+    public int Ident { get; set; }
+    public string Name { get; set; } = string.Empty;
 }
