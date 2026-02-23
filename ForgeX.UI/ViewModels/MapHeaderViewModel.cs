@@ -14,7 +14,7 @@ public partial class MapHeaderViewModel : ViewModelBase
     [ObservableProperty] private float _maximumBudget;
     [ObservableProperty] private float _currentBudget;
 
-    public void LoadFrom(MapVariant variant)
+    public void LoadFrom(IMapVariantData variant)
     {
         VariantName = variant.VariantName;
         Description = variant.VariantDescription;
@@ -26,7 +26,7 @@ public partial class MapHeaderViewModel : ViewModelBase
         MapName = variant.Tags?.MapName ?? $"Unknown ({variant.MapId})";
     }
 
-    public void SaveTo(MapVariant variant)
+    public void SaveTo(IMapVariantData variant)
     {
         variant.VariantName = VariantName;
         variant.VariantDescription = Description;

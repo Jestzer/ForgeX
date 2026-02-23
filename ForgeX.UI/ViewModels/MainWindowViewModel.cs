@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ForgeX.Core.Blf;
 using ForgeX.Core.Halo3;
 using ForgeX.Core.Xbox360;
 
@@ -12,9 +13,10 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private string _statusMessage = "Open a usermap file to begin.";
     [ObservableProperty] private bool _isFileLoaded;
     [ObservableProperty] private string _windowTitle = "ForgeX - Halo 3 Forge Usermap Editor";
+    [ObservableProperty] private bool _isXbox360Format;
 
     private StfsContainer? _container;
-    private MapVariant? _variant;
+    private IMapVariantData? _variant;
     private string? _currentFilePath;
 
     public void OpenFile(string filePath)
@@ -25,14 +27,39 @@ public partial class MainWindowViewModel : ViewModelBase
             CloseCurrentFile();
 
             _currentFilePath = filePath;
-            _container = new StfsContainer(filePath);
-            _variant = new MapVariant(_container);
+
+            // Detect format by reading first 4 bytes
+            var magic = new byte[4];
+            using (var fs = File.OpenRead(filePath))
+                fs.Read(magic, 0, 4);
+
+            string magicStr = System.Text.Encoding.ASCII.GetString(magic);
+
+            if (magicStr.StartsWith("CON") || magicStr.StartsWith("LIV") || magicStr.StartsWith("PIR"))
+            {
+                // Xbox 360 STFS container
+                _container = new StfsContainer(filePath);
+                _variant = new MapVariant(_container);
+                IsXbox360Format = true;
+            }
+            else if (magicStr == "_blf")
+            {
+                // MCC BLF container (.mvar file)
+                _variant = new MccMapVariant(filePath);
+                IsXbox360Format = false;
+            }
+            else
+            {
+                throw new InvalidDataException(
+                    $"Unrecognized file format (magic: 0x{magic[0]:X2}{magic[1]:X2}{magic[2]:X2}{magic[3]:X2}).");
+            }
 
             MapHeader.LoadFrom(_variant);
             TagBrowser.Load(_variant);
 
             IsFileLoaded = true;
-            StatusMessage = $"Loaded: {Path.GetFileName(filePath)}";
+            string formatLabel = IsXbox360Format ? "Xbox 360" : "MCC";
+            StatusMessage = $"Loaded ({formatLabel}): {Path.GetFileName(filePath)}";
             WindowTitle = $"ForgeX - {_variant.VariantName} ({MapHeader.MapName})";
         }
         catch (Exception ex)
@@ -94,6 +121,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _container = null;
         _currentFilePath = null;
         IsFileLoaded = false;
+        IsXbox360Format = false;
         MapHeader = new MapHeaderViewModel();
         TagBrowser = new TagBrowserViewModel();
     }

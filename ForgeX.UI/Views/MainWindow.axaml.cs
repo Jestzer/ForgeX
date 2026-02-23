@@ -23,6 +23,8 @@ public partial class MainWindow : Window
             AllowMultiple = false,
             FileTypeFilter = new[]
             {
+                new FilePickerFileType("Halo 3 Usermaps (.mvar)") { Patterns = new[] { "*.mvar" } },
+                new FilePickerFileType("Xbox 360 Usermaps") { Patterns = new[] { "*" } },
                 new FilePickerFileType("All Files") { Patterns = new[] { "*" } }
             }
         });

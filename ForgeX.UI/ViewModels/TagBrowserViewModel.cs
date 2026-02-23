@@ -7,7 +7,7 @@ namespace ForgeX.UI.ViewModels;
 
 public partial class TagBrowserViewModel : ViewModelBase
 {
-    private MapVariant? _variant;
+    private IMapVariantData? _variant;
 
     // TreeView data
     [ObservableProperty] private ObservableCollection<TagClassNode> _tagTree = new();
@@ -53,7 +53,7 @@ public partial class TagBrowserViewModel : ViewModelBase
         "Added", "Edited", "null", "Original", "PlayerSpawn", "Reserved"
     };
 
-    public void Load(MapVariant variant)
+    public void Load(IMapVariantData variant)
     {
         _variant = variant;
         TagTree.Clear();

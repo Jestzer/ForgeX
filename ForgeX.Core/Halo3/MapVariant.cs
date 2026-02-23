@@ -7,7 +7,7 @@ namespace ForgeX.Core.Halo3;
 /// Reads and writes Halo 3 sandbox.map (usermap/forge variant) data from an Xbox 360 STFS container.
 /// All offsets match the original Forge tool for binary compatibility.
 /// </summary>
-public class MapVariant
+public class MapVariant : IMapVariantData
 {
     public EndianReader Reader { get; set; } = null!;
     public EndianWriter Writer { get; set; } = null!;

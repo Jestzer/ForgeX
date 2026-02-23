@@ -15,7 +15,7 @@
             <MenuItem Header="_File">
                 <MenuItem Header="_Open..." Click="OnOpenFileClick" />
                 <MenuItem Header="_Save Header" Command="{Binding SaveHeaderCommand}" />
-                <MenuItem Header="_Re-sign Container" Command="{Binding ResignContainerCommand}" />
+                <MenuItem Header="_Re-sign Container" Command="{Binding ResignContainerCommand}" IsVisible="{Binding IsXbox360Format}" />
                 <Separator />
                 <MenuItem Header="_Close" Command="{Binding CloseFileCommand}" />
             </MenuItem>
