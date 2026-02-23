@@ -17,4 +17,8 @@
     <ProjectReference Include="..\ForgeX.UI\ForgeX.UI.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\KV.bin" CopyToOutputDirectory="PreserveNewest" Link="KV.bin" />
+  </ItemGroup>
+
 </Project>
