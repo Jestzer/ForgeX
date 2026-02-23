@@ -1,0 +1,197 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ForgeX.UI.ViewModels"
+        x:Class="ForgeX.UI.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="{Binding WindowTitle}"
+        Width="950" Height="800"
+        MinWidth="850" MinHeight="700"
+        Background="#FF2D2B2B">
+
+    <DockPanel>
+        <!-- Menu Bar -->
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Open..." Click="OnOpenFileClick" />
+                <MenuItem Header="_Save Header" Command="{Binding SaveHeaderCommand}" />
+                <MenuItem Header="_Re-sign Container" Command="{Binding ResignContainerCommand}" />
+                <Separator />
+                <MenuItem Header="_Close" Command="{Binding CloseFileCommand}" />
+            </MenuItem>
+        </Menu>
+
+        <!-- Status Bar -->
+        <Border DockPanel.Dock="Bottom" Background="#FF1E1E1E" Padding="8,4">
+            <TextBlock Text="{Binding StatusMessage}" Foreground="#FFAAAAAA" FontSize="12" />
+        </Border>
+
+        <!-- Main Content -->
+        <ScrollViewer>
+            <StackPanel Margin="10" Spacing="10">
+
+                <!-- Map Header Section -->
+                <Border Background="#FF3A3838" BorderBrush="#FF1E699B" BorderThickness="2"
+                        CornerRadius="6" Padding="12">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Map Header" FontWeight="Bold" Foreground="White" FontSize="16" />
+
+                        <Grid ColumnDefinitions="Auto,*,20,Auto,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Variant Name:" Foreground="White" VerticalAlignment="Center" />
+                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding MapHeader.VariantName}" />
+
+                            <TextBlock Grid.Row="0" Grid.Column="3" Text="Author:" Foreground="White" VerticalAlignment="Center" />
+                            <TextBox Grid.Row="0" Grid.Column="4" Text="{Binding MapHeader.Author}" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Description:" Foreground="White" VerticalAlignment="Center" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4" Text="{Binding MapHeader.Description}" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Map:" Foreground="White" VerticalAlignment="Center" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding MapHeader.MapName}" Foreground="#FFCCCCCC" VerticalAlignment="Center" />
+                            <TextBlock Grid.Row="2" Grid.Column="3" Text="Objects:" Foreground="White" VerticalAlignment="Center" />
+                            <TextBlock Grid.Row="2" Grid.Column="4" Text="{Binding MapHeader.SpawnedObjectCount}" Foreground="#FFCCCCCC" VerticalAlignment="Center" />
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Max Budget:" Foreground="White" VerticalAlignment="Center" />
+                            <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding MapHeader.MaximumBudget}" />
+                            <TextBlock Grid.Row="3" Grid.Column="3" Text="Current Budget:" Foreground="White" VerticalAlignment="Center" />
+                            <TextBox Grid.Row="3" Grid.Column="4" Text="{Binding MapHeader.CurrentBudget}" />
+                        </Grid>
+
+                        <Button Content="Save Header" Command="{Binding SaveHeaderCommand}"
+                                HorizontalAlignment="Right"
+                                Background="#FF464646" Foreground="White"
+                                BorderBrush="#FF1E699B" BorderThickness="2"
+                                Padding="16,6" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Tags and Tag Editor Section -->
+                <Border Background="#FF3A3838" BorderBrush="#FF1E699B" BorderThickness="2"
+                        CornerRadius="6" Padding="12">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Tags" FontWeight="Bold" Foreground="White" FontSize="16" />
+
+                        <Grid ColumnDefinitions="300,10,*" MinHeight="250">
+                            <!-- Tag TreeView -->
+                            <Border Grid.Column="0" Background="#FF2D2B2B" CornerRadius="4" Padding="4">
+                                <TreeView x:Name="TagTreeView"
+                                          ItemsSource="{Binding TagBrowser.TagTree}"
+                                          SelectionChanged="OnTagTreeSelectionChanged">
+                                    <TreeView.ItemTemplate>
+                                        <TreeDataTemplate x:DataType="vm:TagClassNode" ItemsSource="{Binding Children}">
+                                            <TextBlock Text="{Binding ClassName}" Foreground="White" />
+                                        </TreeDataTemplate>
+                                    </TreeView.ItemTemplate>
+                                </TreeView>
+                            </Border>
+
+                            <!-- Tag Editor -->
+                            <Border Grid.Column="2" Background="#FF2D2B2B" CornerRadius="4" Padding="8">
+                                <StackPanel Spacing="6" IsVisible="{Binding TagBrowser.IsTagSelected}">
+                                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Tag Class:" Foreground="White" VerticalAlignment="Center" />
+                                        <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding TagBrowser.TagClasses}"
+                                                  SelectedItem="{Binding TagBrowser.SelectedTagClass}" HorizontalAlignment="Stretch" />
+
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Tag Path:" Foreground="White" VerticalAlignment="Center" />
+                                        <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding TagBrowser.TagPaths}"
+                                                  SelectedItem="{Binding TagBrowser.SelectedTagPath}" HorizontalAlignment="Stretch" />
+
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Ident:" Foreground="White" VerticalAlignment="Center" />
+                                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding TagBrowser.Ident}" />
+
+                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Runtime Min/Max:" Foreground="White" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                            <TextBox Text="{Binding TagBrowser.RuntimeMin}" Width="80" />
+                                            <TextBox Text="{Binding TagBrowser.RuntimeMax}" Width="80" />
+                                        </StackPanel>
+
+                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Count on Map:" Foreground="White" VerticalAlignment="Center" />
+                                        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding TagBrowser.CountOnMap}" Width="80" HorizontalAlignment="Left" />
+
+                                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Design Time Max:" Foreground="White" VerticalAlignment="Center" />
+                                        <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding TagBrowser.DesignTimeMax}" Width="80" HorizontalAlignment="Left" />
+
+                                        <TextBlock Grid.Row="6" Grid.Column="0" Text="Cost:" Foreground="White" VerticalAlignment="Center" />
+                                        <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding TagBrowser.Cost}" Width="120" HorizontalAlignment="Left" />
+                                    </Grid>
+
+                                    <Button Content="Save Tag" Command="{Binding TagBrowser.SaveTagCommand}"
+                                            HorizontalAlignment="Right"
+                                            Background="#FF464646" Foreground="White"
+                                            BorderBrush="#FF1E699B" BorderThickness="2"
+                                            Padding="16,6" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Placement Editor Section -->
+                <Border Background="#FF3A3838" BorderBrush="#FF1E699B" BorderThickness="2"
+                        CornerRadius="6" Padding="12"
+                        IsVisible="{Binding TagBrowser.IsTagSelected}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Placement Editor" FontWeight="Bold" Foreground="White" FontSize="16" />
+
+                        <ComboBox ItemsSource="{Binding TagBrowser.Placements}"
+                                  SelectedIndex="{Binding TagBrowser.SelectedPlacementIndex}"
+                                  HorizontalAlignment="Stretch" />
+
+                        <StackPanel Spacing="6" IsVisible="{Binding TagBrowser.HasSelectedPlacement}">
+                            <Grid ColumnDefinitions="Auto,*,20,Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Tags Index:" Foreground="White" VerticalAlignment="Center" />
+                                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding TagBrowser.PlacementTagsIndex}" />
+                                <TextBlock Grid.Row="0" Grid.Column="3" Text="Chunk Type:" Foreground="White" VerticalAlignment="Center" />
+                                <ComboBox Grid.Row="0" Grid.Column="4" ItemsSource="{Binding TagBrowser.ChunkTypes}"
+                                          SelectedItem="{Binding TagBrowser.PlacementChunkType}" HorizontalAlignment="Stretch" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="X:" Foreground="White" VerticalAlignment="Center" />
+                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding TagBrowser.PlacementX}" />
+                                <TextBlock Grid.Row="1" Grid.Column="3" Text="Y:" Foreground="White" VerticalAlignment="Center" />
+                                <TextBox Grid.Row="1" Grid.Column="4" Text="{Binding TagBrowser.PlacementY}" />
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Z:" Foreground="White" VerticalAlignment="Center" />
+                                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding TagBrowser.PlacementZ}" />
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Yaw:" Foreground="White" VerticalAlignment="Center" />
+                                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding TagBrowser.PlacementYaw}" />
+                                <TextBlock Grid.Row="3" Grid.Column="3" Text="Pitch:" Foreground="White" VerticalAlignment="Center" />
+                                <TextBox Grid.Row="3" Grid.Column="4" Text="{Binding TagBrowser.PlacementPitch}" />
+
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="Roll:" Foreground="White" VerticalAlignment="Center" />
+                                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding TagBrowser.PlacementRoll}" />
+                            </Grid>
+
+                            <Grid ColumnDefinitions="Auto,80,20,Auto,80,20,Auto,80">
+                                <TextBlock Grid.Column="0" Text="Respawn:" Foreground="White" VerticalAlignment="Center" />
+                                <TextBox Grid.Column="1" Text="{Binding TagBrowser.PlacementRespawnTime}" />
+                                <TextBlock Grid.Column="3" Text="Team:" Foreground="White" VerticalAlignment="Center" />
+                                <TextBox Grid.Column="4" Text="{Binding TagBrowser.PlacementTeam}" />
+                                <TextBlock Grid.Column="6" Text="Spare Clips:" Foreground="White" VerticalAlignment="Center" />
+                                <TextBox Grid.Column="7" Text="{Binding TagBrowser.PlacementSpareClips}" />
+                            </Grid>
+
+                            <StackPanel Orientation="Horizontal" Spacing="16">
+                                <CheckBox Content="Flag 1" IsChecked="{Binding TagBrowser.PlacementFlag1}" Foreground="White" />
+                                <CheckBox Content="Flag 2" IsChecked="{Binding TagBrowser.PlacementFlag2}" Foreground="White" />
+                                <CheckBox Content="Flag 3" IsChecked="{Binding TagBrowser.PlacementFlag3}" Foreground="White" />
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                                <Button Content="Save Placement" Command="{Binding TagBrowser.SavePlacementCommand}"
+                                        Background="#FF464646" Foreground="White"
+                                        BorderBrush="#FF1E699B" BorderThickness="2"
+                                        Padding="16,6" />
+                                <Button Content="Delete Placement" Command="{Binding TagBrowser.DeletePlacementCommand}"
+                                        Background="#FF5A2D2D" Foreground="White"
+                                        BorderBrush="#FF8B0000" BorderThickness="2"
+                                        Padding="16,6" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

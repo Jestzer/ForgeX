@@ -1,0 +1,40 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ForgeX.Core", "ForgeX.Core\ForgeX.Core.csproj", "{DE0C9F91-67FE-440B-9741-5B0CAC0A8694}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ForgeX.UI", "ForgeX.UI\ForgeX.UI.csproj", "{DB3FA334-5E84-422D-BC5B-1A735D7A7F80}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ForgeX.Desktop", "ForgeX.Desktop\ForgeX.Desktop.csproj", "{8C39EC93-863C-41AF-85D7-B330016579C5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ForgeX.Tests", "ForgeX.Tests\ForgeX.Tests.csproj", "{A95888B3-53EC-4AC8-AC89-6F267A8BB217}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DE0C9F91-67FE-440B-9741-5B0CAC0A8694}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DE0C9F91-67FE-440B-9741-5B0CAC0A8694}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DE0C9F91-67FE-440B-9741-5B0CAC0A8694}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DE0C9F91-67FE-440B-9741-5B0CAC0A8694}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DB3FA334-5E84-422D-BC5B-1A735D7A7F80}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DB3FA334-5E84-422D-BC5B-1A735D7A7F80}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DB3FA334-5E84-422D-BC5B-1A735D7A7F80}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DB3FA334-5E84-422D-BC5B-1A735D7A7F80}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8C39EC93-863C-41AF-85D7-B330016579C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8C39EC93-863C-41AF-85D7-B330016579C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8C39EC93-863C-41AF-85D7-B330016579C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8C39EC93-863C-41AF-85D7-B330016579C5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A95888B3-53EC-4AC8-AC89-6F267A8BB217}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A95888B3-53EC-4AC8-AC89-6F267A8BB217}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A95888B3-53EC-4AC8-AC89-6F267A8BB217}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A95888B3-53EC-4AC8-AC89-6F267A8BB217}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
