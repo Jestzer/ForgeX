@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text;
 
 namespace ForgeX.Core.Blf;
@@ -141,6 +142,87 @@ public class BlfFile
         chunk.Size = newData.Length + 12;
     }
 
+    /// <summary>
+    /// Decompresses a compressed (_cmp) .mvar file and saves the decompressed copy.
+    /// Returns the path to the decompressed file.
+    /// </summary>
+    public static string Decompress(string compressedFilePath)
+    {
+        var blf = new BlfFile(compressedFilePath);
+        if (blf.VariantFormat != BlfVariantFormat.Compressed)
+            throw new InvalidOperationException("File is not a compressed .mvar file.");
+
+        var cmpChunk = blf.GetChunk("_cmp")
+            ?? throw new InvalidDataException("Missing _cmp chunk in compressed .mvar file.");
+
+        // The _cmp payload has a 5-byte header before the zlib-compressed data
+        if (cmpChunk.Data.Length <= 5)
+            throw new InvalidDataException("_cmp chunk payload too small.");
+
+        byte[] compressedData = cmpChunk.Data[5..];
+
+        // Decompress using zlib (standard in .NET 6+)
+        byte[] decompressedData;
+        using (var compressedStream = new MemoryStream(compressedData))
+        using (var zlibStream = new ZLibStream(compressedStream, CompressionMode.Decompress))
+        using (var resultStream = new MemoryStream())
+        {
+            zlibStream.CopyTo(resultStream);
+            decompressedData = resultStream.ToArray();
+        }
+
+        // The decompressed data is a raw mapv chunk (tag + size + version + payload).
+        // Reconstruct a valid BLF file: keep _blf and other pre-_cmp chunks,
+        // replace _cmp with the decompressed mapv chunk, then write _eof.
+        string decompressedTag = Encoding.ASCII.GetString(decompressedData, 0, 4);
+        if (decompressedTag != "mapv")
+            throw new InvalidDataException($"Expected decompressed data to be a mapv chunk, got '{decompressedTag}'.");
+
+        // Parse the decompressed mapv chunk header
+        var mapvChunk = new BlfChunk();
+        mapvChunk.Tag = "mapv";
+        mapvChunk.Size = ReadBigEndianInt32(decompressedData, 4);
+        mapvChunk.MajorVersion = ReadBigEndianInt16(decompressedData, 8);
+        mapvChunk.MinorVersion = ReadBigEndianInt16(decompressedData, 10);
+        mapvChunk.Data = decompressedData[12..mapvChunk.Size];
+
+        // Build output path: same directory, append _decompressed before extension
+        string dir = Path.GetDirectoryName(compressedFilePath) ?? ".";
+        string name = Path.GetFileNameWithoutExtension(compressedFilePath);
+        string ext = Path.GetExtension(compressedFilePath);
+        string decompressedPath = Path.Combine(dir, $"{name}_decompressed{ext}");
+
+        // Write reconstructed BLF: all chunks except _cmp replaced with mapv
+        using (var stream = File.Create(decompressedPath))
+        using (var writer = new BinaryWriter(stream))
+        {
+            foreach (var chunk in blf.Chunks)
+            {
+                if (chunk.Tag == "_cmp")
+                {
+                    // Write decompressed mapv chunk instead
+                    writer.Write(Encoding.ASCII.GetBytes("mapv"));
+                    WriteBigEndianInt32(writer, mapvChunk.Size);
+                    WriteBigEndianInt16(writer, mapvChunk.MajorVersion);
+                    WriteBigEndianInt16(writer, mapvChunk.MinorVersion);
+                    writer.Write(mapvChunk.Data);
+                }
+                else
+                {
+                    // Write original chunk as-is
+                    writer.Write(Encoding.ASCII.GetBytes(chunk.Tag.PadRight(4)[..4]));
+                    WriteBigEndianInt32(writer, chunk.Size);
+                    WriteBigEndianInt16(writer, chunk.MajorVersion);
+                    WriteBigEndianInt16(writer, chunk.MinorVersion);
+                    if (chunk.Data.Length > 0)
+                        writer.Write(chunk.Data);
+                }
+            }
+        }
+
+        return decompressedPath;
+    }
+
     private static int ReadBigEndianInt32(BinaryReader reader)
     {
         byte[] bytes = reader.ReadBytes(4);
@@ -149,9 +231,27 @@ public class BlfFile
         return BitConverter.ToInt32(bytes, 0);
     }
 
+    private static int ReadBigEndianInt32(byte[] data, int offset)
+    {
+        byte[] bytes = new byte[4];
+        Array.Copy(data, offset, bytes, 0, 4);
+        if (BitConverter.IsLittleEndian)
+            Array.Reverse(bytes);
+        return BitConverter.ToInt32(bytes, 0);
+    }
+
     private static short ReadBigEndianInt16(BinaryReader reader)
     {
         byte[] bytes = reader.ReadBytes(2);
+        if (BitConverter.IsLittleEndian)
+            Array.Reverse(bytes);
+        return BitConverter.ToInt16(bytes, 0);
+    }
+
+    private static short ReadBigEndianInt16(byte[] data, int offset)
+    {
+        byte[] bytes = new byte[2];
+        Array.Copy(data, offset, bytes, 0, 2);
         if (BitConverter.IsLittleEndian)
             Array.Reverse(bytes);
         return BitConverter.ToInt16(bytes, 0);

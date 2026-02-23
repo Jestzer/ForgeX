@@ -240,7 +240,6 @@ public class MccLoadTest
 
         var files = Directory.GetFiles(MvarDir, "*.mvar");
         int loaded = 0;
-        int skipped = 0;
 
         foreach (var file in files)
         {
@@ -251,14 +250,14 @@ public class MccLoadTest
             {
                 var variant = new MccMapVariant(tempFile);
                 int activePlacements = variant.PlacementChunks.Count(c => c.TagsIndex >= 0);
-                Console.WriteLine($"  OK: {Path.GetFileName(file)} -> '{variant.VariantName}' MapId={variant.MapId} Placements={activePlacements}");
+                string decompNote = variant.DecompressedPath != null ? " (decompressed)" : "";
+                Console.WriteLine($"  OK{decompNote}: {Path.GetFileName(file)} -> '{variant.VariantName}' MapId={variant.MapId} Placements={activePlacements}");
                 variant.CloseIO();
                 loaded++;
-            }
-            catch (NotSupportedException ex) when (ex.Message.Contains("Compressed"))
-            {
-                Console.WriteLine($"  SKIP (compressed): {Path.GetFileName(file)}");
-                skipped++;
+
+                // Clean up decompressed copy if one was created
+                if (variant.DecompressedPath != null && File.Exists(variant.DecompressedPath))
+                    File.Delete(variant.DecompressedPath);
             }
             catch (Exception ex)
             {
@@ -271,7 +270,7 @@ public class MccLoadTest
             }
         }
 
-        Console.WriteLine($"\nLoaded: {loaded}, Skipped: {skipped}, Total: {files.Length}");
+        Console.WriteLine($"\nLoaded: {loaded}, Total: {files.Length}");
         Assert.True(loaded > 0, "Should load at least one file");
     }
 

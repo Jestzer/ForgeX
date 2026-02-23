@@ -32,6 +32,11 @@ public class MccMapVariant : IMapVariantData
     public List<PlacementChunk> PlacementChunks { get; set; } = new();
     public TagDatabase? Tags { get; set; }
 
+    /// <summary>
+    /// If the file was compressed, this is the path to the decompressed copy that was created.
+    /// </summary>
+    public string? DecompressedPath { get; private set; }
+
     // Unpacked mapv byte-aligned offsets (within chunk payload)
     // Payload starts with 12 bytes: unique_id(8) + unknown(4), then name
     private const int OffsetName = 12;          // UTF-16BE, 16 chars (32 bytes)
@@ -62,7 +67,15 @@ public class MccMapVariant : IMapVariantData
                 LoadPacked();
                 break;
             case BlfVariantFormat.Compressed:
-                throw new NotSupportedException("Compressed .mvar files are not yet supported.");
+                DecompressedPath = BlfFile.Decompress(filePath);
+                _blfFile = new BlfFile(DecompressedPath);
+                if (_blfFile.VariantFormat == BlfVariantFormat.UnpackedMapv)
+                    LoadUnpacked();
+                else if (_blfFile.VariantFormat == BlfVariantFormat.PackedMvar)
+                    LoadPacked();
+                else
+                    throw new InvalidDataException("Decompressed .mvar has unexpected format.");
+                break;
             default:
                 throw new InvalidDataException("Unrecognized .mvar format.");
         }

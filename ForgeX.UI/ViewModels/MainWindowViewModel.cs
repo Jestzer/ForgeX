@@ -60,6 +60,8 @@ public partial class MainWindowViewModel : ViewModelBase
             IsFileLoaded = true;
             string formatLabel = IsXbox360Format ? "Xbox 360" : "MCC";
             StatusMessage = $"Loaded ({formatLabel}): {Path.GetFileName(filePath)}";
+            if (_variant is MccMapVariant mcc && mcc.DecompressedPath != null)
+                StatusMessage += $" — Decompressed copy: {Path.GetFileName(mcc.DecompressedPath)}";
             WindowTitle = $"ForgeX - {_variant.VariantName} ({MapHeader.MapName})";
         }
         catch (Exception ex)
