@@ -4,8 +4,9 @@
         x:Class="ForgeX.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="{Binding WindowTitle}"
-        Width="950" Height="800"
-        MinWidth="850" MinHeight="700"
+        Icon="avares://ForgeX.UI/Assets/icon.png"
+        Width="1050" Height="800"
+        MinWidth="900" MinHeight="700"
         Background="#FF2D2B2B">
 
     <DockPanel>
@@ -25,149 +26,147 @@
             <TextBlock Text="{Binding StatusMessage}" Foreground="#FFAAAAAA" FontSize="12" />
         </Border>
 
-        <!-- Main Content -->
-        <ScrollViewer>
-            <StackPanel Margin="10" Spacing="10">
+        <!-- Map Header (compact, docked top) -->
+        <Border DockPanel.Dock="Top" Background="#FF3A3838" BorderBrush="#FF1E699B" BorderThickness="2"
+                CornerRadius="6" Padding="10" Margin="8,8,8,0">
+            <Grid ColumnDefinitions="Auto,*,16,Auto,*,16,Auto,Auto,16,Auto,Auto,16,Auto" RowDefinitions="Auto,Auto">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Variant Name:" Foreground="White" VerticalAlignment="Center" Margin="0,0,6,0" />
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding MapHeader.VariantName}" />
 
-                <!-- Map Header Section -->
-                <Border Background="#FF3A3838" BorderBrush="#FF1E699B" BorderThickness="2"
-                        CornerRadius="6" Padding="12">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Map Header" FontWeight="Bold" Foreground="White" FontSize="16" />
+                <TextBlock Grid.Row="0" Grid.Column="3" Text="Author:" Foreground="White" VerticalAlignment="Center" Margin="0,0,6,0" />
+                <TextBox Grid.Row="0" Grid.Column="4" Text="{Binding MapHeader.Author}" />
 
-                        <Grid ColumnDefinitions="Auto,*,20,Auto,*" RowDefinitions="Auto,Auto,Auto,Auto">
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Variant Name:" Foreground="White" VerticalAlignment="Center" />
-                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding MapHeader.VariantName}" />
+                <TextBlock Grid.Row="0" Grid.Column="6" Text="Map:" Foreground="White" VerticalAlignment="Center" Margin="0,0,6,0" />
+                <TextBlock Grid.Row="0" Grid.Column="7" Text="{Binding MapHeader.MapName}" Foreground="#FFCCCCCC" VerticalAlignment="Center" />
 
-                            <TextBlock Grid.Row="0" Grid.Column="3" Text="Author:" Foreground="White" VerticalAlignment="Center" />
-                            <TextBox Grid.Row="0" Grid.Column="4" Text="{Binding MapHeader.Author}" />
+                <TextBlock Grid.Row="0" Grid.Column="9" Text="Objects:" Foreground="White" VerticalAlignment="Center" Margin="0,0,6,0" />
+                <TextBlock Grid.Row="0" Grid.Column="10" Text="{Binding MapHeader.SpawnedObjectCount}" Foreground="#FFCCCCCC" VerticalAlignment="Center" />
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Description:" Foreground="White" VerticalAlignment="Center" />
-                            <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4" Text="{Binding MapHeader.Description}" />
+                <Button Grid.Row="0" Grid.Column="12" Content="Save Header" Command="{Binding SaveHeaderCommand}"
+                        Background="#FF464646" Foreground="White"
+                        BorderBrush="#FF1E699B" BorderThickness="2"
+                        Padding="12,4" VerticalAlignment="Center" />
 
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Map:" Foreground="White" VerticalAlignment="Center" />
-                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding MapHeader.MapName}" Foreground="#FFCCCCCC" VerticalAlignment="Center" />
-                            <TextBlock Grid.Row="2" Grid.Column="3" Text="Objects:" Foreground="White" VerticalAlignment="Center" />
-                            <TextBlock Grid.Row="2" Grid.Column="4" Text="{Binding MapHeader.SpawnedObjectCount}" Foreground="#FFCCCCCC" VerticalAlignment="Center" />
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Description:" Foreground="White" VerticalAlignment="Center" Margin="0,4,6,0" />
+                <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4" Text="{Binding MapHeader.Description}" Margin="0,4,0,0" />
 
-                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Max Budget:" Foreground="White" VerticalAlignment="Center" />
-                            <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding MapHeader.MaximumBudget}" />
-                            <TextBlock Grid.Row="3" Grid.Column="3" Text="Current Budget:" Foreground="White" VerticalAlignment="Center" />
-                            <TextBox Grid.Row="3" Grid.Column="4" Text="{Binding MapHeader.CurrentBudget}" />
+                <TextBlock Grid.Row="1" Grid.Column="6" Text="Budget:" Foreground="White" VerticalAlignment="Center" Margin="0,4,6,0" />
+                <TextBox Grid.Row="1" Grid.Column="7" Text="{Binding MapHeader.MaximumBudget}" Width="70" Margin="0,4,0,0" />
+
+                <TextBlock Grid.Row="1" Grid.Column="9" Text="Current:" Foreground="White" VerticalAlignment="Center" Margin="0,4,6,0" />
+                <TextBox Grid.Row="1" Grid.Column="10" Text="{Binding MapHeader.CurrentBudget}" Width="70" Margin="0,4,0,0" />
+            </Grid>
+        </Border>
+
+        <!-- Main Content: TreeView left, Editor panels right -->
+        <Grid ColumnDefinitions="280,6,*" Margin="8">
+            <!-- Tag TreeView -->
+            <Border Grid.Column="0" Background="#FF3A3838" BorderBrush="#FF1E699B" BorderThickness="2"
+                    CornerRadius="6" Padding="6" ClipToBounds="True">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Tags" FontWeight="Bold" Foreground="White" FontSize="14" Margin="0,0,0,6" />
+                    <TreeView x:Name="TagTreeView"
+                              ItemsSource="{Binding TagBrowser.TagTree}"
+                              SelectionChanged="OnTagTreeSelectionChanged"
+                              ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <TreeView.ItemTemplate>
+                            <TreeDataTemplate x:DataType="vm:TagClassNode" ItemsSource="{Binding Children}">
+                                <TextBlock Text="{Binding ClassName}" Foreground="White" TextTrimming="CharacterEllipsis" />
+                            </TreeDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+                </DockPanel>
+            </Border>
+
+            <!-- Resizable splitter -->
+            <GridSplitter Grid.Column="1" Width="6" Background="Transparent"
+                          ResizeDirection="Columns" />
+
+            <!-- Right side: Tag Editor + Placement Editor stacked -->
+            <DockPanel Grid.Column="2">
+                <!-- Tag Editor (top) -->
+                <Border DockPanel.Dock="Top" Background="#FF3A3838" BorderBrush="#FF1E699B" BorderThickness="2"
+                        CornerRadius="6" Padding="10" Margin="0,0,0,8"
+                        IsVisible="{Binding TagBrowser.IsTagSelected}">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Tag Editor" FontWeight="Bold" Foreground="White" FontSize="14" />
+
+                        <Grid ColumnDefinitions="Auto,*,16,Auto,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Tag Class:" Foreground="White" VerticalAlignment="Center" Margin="0,0,6,0" />
+                            <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="4" ItemsSource="{Binding TagBrowser.TagClasses}"
+                                      SelectedItem="{Binding TagBrowser.SelectedTagClass}" HorizontalAlignment="Stretch" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Tag Path:" Foreground="White" VerticalAlignment="Center" Margin="0,2,6,0" />
+                            <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4" ItemsSource="{Binding TagBrowser.TagPaths}"
+                                      SelectedItem="{Binding TagBrowser.SelectedTagPath}" HorizontalAlignment="Stretch" Margin="0,2,0,0" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Ident:" Foreground="White" VerticalAlignment="Center" Margin="0,2,6,0" />
+                            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding TagBrowser.Ident}" Margin="0,2,0,0" />
+                            <TextBlock Grid.Row="2" Grid.Column="3" Text="Cost:" Foreground="White" VerticalAlignment="Center" Margin="0,2,6,0" />
+                            <TextBox Grid.Row="2" Grid.Column="4" Text="{Binding TagBrowser.Cost}" Margin="0,2,0,0" />
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="RT Min/Max:" Foreground="White" VerticalAlignment="Center" Margin="0,2,6,0" />
+                            <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="6" Margin="0,2,0,0">
+                                <TextBox Text="{Binding TagBrowser.RuntimeMin}" Width="60" />
+                                <TextBox Text="{Binding TagBrowser.RuntimeMax}" Width="60" />
+                            </StackPanel>
+                            <TextBlock Grid.Row="3" Grid.Column="3" Text="Count / DT Max:" Foreground="White" VerticalAlignment="Center" Margin="0,2,6,0" />
+                            <StackPanel Grid.Row="3" Grid.Column="4" Orientation="Horizontal" Spacing="6" Margin="0,2,0,0">
+                                <TextBox Text="{Binding TagBrowser.CountOnMap}" Width="60" />
+                                <TextBox Text="{Binding TagBrowser.DesignTimeMax}" Width="60" />
+                            </StackPanel>
                         </Grid>
 
-                        <Button Content="Save Header" Command="{Binding SaveHeaderCommand}"
+                        <Button Content="Save Tag" Command="{Binding TagBrowser.SaveTagCommand}"
                                 HorizontalAlignment="Right"
                                 Background="#FF464646" Foreground="White"
                                 BorderBrush="#FF1E699B" BorderThickness="2"
-                                Padding="16,6" />
+                                Padding="12,4" />
                     </StackPanel>
                 </Border>
 
-                <!-- Tags and Tag Editor Section -->
+                <!-- Placement Editor (fills remaining space) -->
                 <Border Background="#FF3A3838" BorderBrush="#FF1E699B" BorderThickness="2"
-                        CornerRadius="6" Padding="12">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Tags" FontWeight="Bold" Foreground="White" FontSize="16" />
-
-                        <Grid ColumnDefinitions="300,10,*" MinHeight="250">
-                            <!-- Tag TreeView -->
-                            <Border Grid.Column="0" Background="#FF2D2B2B" CornerRadius="4" Padding="4">
-                                <TreeView x:Name="TagTreeView"
-                                          ItemsSource="{Binding TagBrowser.TagTree}"
-                                          SelectionChanged="OnTagTreeSelectionChanged">
-                                    <TreeView.ItemTemplate>
-                                        <TreeDataTemplate x:DataType="vm:TagClassNode" ItemsSource="{Binding Children}">
-                                            <TextBlock Text="{Binding ClassName}" Foreground="White" />
-                                        </TreeDataTemplate>
-                                    </TreeView.ItemTemplate>
-                                </TreeView>
-                            </Border>
-
-                            <!-- Tag Editor -->
-                            <Border Grid.Column="2" Background="#FF2D2B2B" CornerRadius="4" Padding="8">
-                                <StackPanel Spacing="6" IsVisible="{Binding TagBrowser.IsTagSelected}">
-                                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
-                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Tag Class:" Foreground="White" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding TagBrowser.TagClasses}"
-                                                  SelectedItem="{Binding TagBrowser.SelectedTagClass}" HorizontalAlignment="Stretch" />
-
-                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Tag Path:" Foreground="White" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding TagBrowser.TagPaths}"
-                                                  SelectedItem="{Binding TagBrowser.SelectedTagPath}" HorizontalAlignment="Stretch" />
-
-                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Ident:" Foreground="White" VerticalAlignment="Center" />
-                                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding TagBrowser.Ident}" />
-
-                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Runtime Min/Max:" Foreground="White" VerticalAlignment="Center" />
-                                        <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                                            <TextBox Text="{Binding TagBrowser.RuntimeMin}" Width="80" />
-                                            <TextBox Text="{Binding TagBrowser.RuntimeMax}" Width="80" />
-                                        </StackPanel>
-
-                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Count on Map:" Foreground="White" VerticalAlignment="Center" />
-                                        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding TagBrowser.CountOnMap}" Width="80" HorizontalAlignment="Left" />
-
-                                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Design Time Max:" Foreground="White" VerticalAlignment="Center" />
-                                        <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding TagBrowser.DesignTimeMax}" Width="80" HorizontalAlignment="Left" />
-
-                                        <TextBlock Grid.Row="6" Grid.Column="0" Text="Cost:" Foreground="White" VerticalAlignment="Center" />
-                                        <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding TagBrowser.Cost}" Width="120" HorizontalAlignment="Left" />
-                                    </Grid>
-
-                                    <Button Content="Save Tag" Command="{Binding TagBrowser.SaveTagCommand}"
-                                            HorizontalAlignment="Right"
-                                            Background="#FF464646" Foreground="White"
-                                            BorderBrush="#FF1E699B" BorderThickness="2"
-                                            Padding="16,6" />
-                                </StackPanel>
-                            </Border>
-                        </Grid>
-                    </StackPanel>
-                </Border>
-
-                <!-- Placement Editor Section -->
-                <Border Background="#FF3A3838" BorderBrush="#FF1E699B" BorderThickness="2"
-                        CornerRadius="6" Padding="12"
+                        CornerRadius="6" Padding="10"
                         IsVisible="{Binding TagBrowser.IsTagSelected}">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Placement Editor" FontWeight="Bold" Foreground="White" FontSize="16" />
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="Placement Editor" FontWeight="Bold" Foreground="White" FontSize="14" Margin="0,0,0,6" />
 
-                        <ComboBox ItemsSource="{Binding TagBrowser.Placements}"
+                        <ComboBox DockPanel.Dock="Top" ItemsSource="{Binding TagBrowser.Placements}"
                                   SelectedIndex="{Binding TagBrowser.SelectedPlacementIndex}"
-                                  HorizontalAlignment="Stretch" />
+                                  HorizontalAlignment="Stretch" Margin="0,0,0,6" />
 
                         <StackPanel Spacing="6" IsVisible="{Binding TagBrowser.HasSelectedPlacement}">
-                            <Grid ColumnDefinitions="Auto,*,20,Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Tags Index:" Foreground="White" VerticalAlignment="Center" />
+                            <Grid ColumnDefinitions="Auto,*,16,Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Tags Index:" Foreground="White" VerticalAlignment="Center" Margin="0,0,6,0" />
                                 <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding TagBrowser.PlacementTagsIndex}" />
-                                <TextBlock Grid.Row="0" Grid.Column="3" Text="Chunk Type:" Foreground="White" VerticalAlignment="Center" />
+                                <TextBlock Grid.Row="0" Grid.Column="3" Text="Chunk Type:" Foreground="White" VerticalAlignment="Center" Margin="0,0,6,0" />
                                 <ComboBox Grid.Row="0" Grid.Column="4" ItemsSource="{Binding TagBrowser.ChunkTypes}"
                                           SelectedItem="{Binding TagBrowser.PlacementChunkType}" HorizontalAlignment="Stretch" />
 
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="X:" Foreground="White" VerticalAlignment="Center" />
-                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding TagBrowser.PlacementX}" />
-                                <TextBlock Grid.Row="1" Grid.Column="3" Text="Y:" Foreground="White" VerticalAlignment="Center" />
-                                <TextBox Grid.Row="1" Grid.Column="4" Text="{Binding TagBrowser.PlacementY}" />
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="X:" Foreground="White" VerticalAlignment="Center" Margin="0,2,6,0" />
+                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding TagBrowser.PlacementX}" Margin="0,2,0,0" />
+                                <TextBlock Grid.Row="1" Grid.Column="3" Text="Y:" Foreground="White" VerticalAlignment="Center" Margin="0,2,6,0" />
+                                <TextBox Grid.Row="1" Grid.Column="4" Text="{Binding TagBrowser.PlacementY}" Margin="0,2,0,0" />
 
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Z:" Foreground="White" VerticalAlignment="Center" />
-                                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding TagBrowser.PlacementZ}" />
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Z:" Foreground="White" VerticalAlignment="Center" Margin="0,2,6,0" />
+                                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding TagBrowser.PlacementZ}" Margin="0,2,0,0" />
+                                <TextBlock Grid.Row="2" Grid.Column="3" Text="Yaw:" Foreground="White" VerticalAlignment="Center" Margin="0,2,6,0" />
+                                <TextBox Grid.Row="2" Grid.Column="4" Text="{Binding TagBrowser.PlacementYaw}" Margin="0,2,0,0" />
 
-                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Yaw:" Foreground="White" VerticalAlignment="Center" />
-                                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding TagBrowser.PlacementYaw}" />
-                                <TextBlock Grid.Row="3" Grid.Column="3" Text="Pitch:" Foreground="White" VerticalAlignment="Center" />
-                                <TextBox Grid.Row="3" Grid.Column="4" Text="{Binding TagBrowser.PlacementPitch}" />
-
-                                <TextBlock Grid.Row="4" Grid.Column="0" Text="Roll:" Foreground="White" VerticalAlignment="Center" />
-                                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding TagBrowser.PlacementRoll}" />
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Pitch:" Foreground="White" VerticalAlignment="Center" Margin="0,2,6,0" />
+                                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding TagBrowser.PlacementPitch}" Margin="0,2,0,0" />
+                                <TextBlock Grid.Row="3" Grid.Column="3" Text="Roll:" Foreground="White" VerticalAlignment="Center" Margin="0,2,6,0" />
+                                <TextBox Grid.Row="3" Grid.Column="4" Text="{Binding TagBrowser.PlacementRoll}" Margin="0,2,0,0" />
                             </Grid>
 
-                            <Grid ColumnDefinitions="Auto,80,20,Auto,80,20,Auto,80">
-                                <TextBlock Grid.Column="0" Text="Respawn:" Foreground="White" VerticalAlignment="Center" />
+                            <Grid ColumnDefinitions="Auto,70,12,Auto,70,12,Auto,70">
+                                <TextBlock Grid.Column="0" Text="Respawn:" Foreground="White" VerticalAlignment="Center" Margin="0,0,6,0" />
                                 <TextBox Grid.Column="1" Text="{Binding TagBrowser.PlacementRespawnTime}" />
-                                <TextBlock Grid.Column="3" Text="Team:" Foreground="White" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="3" Text="Team:" Foreground="White" VerticalAlignment="Center" Margin="0,0,6,0" />
                                 <TextBox Grid.Column="4" Text="{Binding TagBrowser.PlacementTeam}" />
-                                <TextBlock Grid.Column="6" Text="Spare Clips:" Foreground="White" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="6" Text="Spare Clips:" Foreground="White" VerticalAlignment="Center" Margin="0,0,6,0" />
                                 <TextBox Grid.Column="7" Text="{Binding TagBrowser.PlacementSpareClips}" />
                             </Grid>
 
@@ -181,17 +180,16 @@
                                 <Button Content="Save Placement" Command="{Binding TagBrowser.SavePlacementCommand}"
                                         Background="#FF464646" Foreground="White"
                                         BorderBrush="#FF1E699B" BorderThickness="2"
-                                        Padding="16,6" />
+                                        Padding="12,4" />
                                 <Button Content="Delete Placement" Command="{Binding TagBrowser.DeletePlacementCommand}"
                                         Background="#FF5A2D2D" Foreground="White"
                                         BorderBrush="#FF8B0000" BorderThickness="2"
-                                        Padding="16,6" />
+                                        Padding="12,4" />
                             </StackPanel>
                         </StackPanel>
-                    </StackPanel>
+                    </DockPanel>
                 </Border>
-
-            </StackPanel>
-        </ScrollViewer>
+            </DockPanel>
+        </Grid>
     </DockPanel>
 </Window>

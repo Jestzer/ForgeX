@@ -21,4 +21,12 @@
     <None Include="..\KV.bin" CopyToOutputDirectory="PreserveNewest" Link="KV.bin" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\icon.png" />
+  </ItemGroup>
+
 </Project>
