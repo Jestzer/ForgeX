@@ -10,7 +10,8 @@ namespace ForgeX.Core.Xbox360;
 /// </summary>
 public class StfsContainer
 {
-    private const uint MAGIC_CON = 0x434F4E00; // "CON\0"
+    private const uint MAGIC_CON_MASK = 0xFFFFFF00; // Check first 3 bytes: "CON"
+    private const uint MAGIC_CON_PREFIX = 0x434F4E00; // "CON" in first 3 bytes
 
     public int BlockShift { get; set; }
     public int[] BlockStep { get; set; } = new int[2];
@@ -41,7 +42,17 @@ public class StfsContainer
         IO = new EndianIO(fileName, EndianType.BigEndian, keepOpen: true);
         Read();
         RefreshHashTableInfo();
-        VerifyRSA();
+
+        try
+        {
+            VerifyRSA();
+        }
+        catch (System.Security.Cryptography.CryptographicException)
+        {
+            // SHA1 RSA verification may be disabled by OS security policy
+            // (e.g., OpenSSL 3.x on modern Linux). Non-fatal - just mark as unverified.
+            Resigned = false;
+        }
     }
 
     public void Close()
@@ -144,11 +155,11 @@ public class StfsContainer
 
         SetupSTFS();
 
-        // Validate magic number
+        // Validate magic number - first 3 bytes must be "CON"
         IO.Reader.BaseStream.Position = 0;
         uint magic = IO.Reader.ReadUInt32(EndianType.BigEndian);
-        if (magic != MAGIC_CON)
-            throw new InvalidDataException($"Not a valid CON file. Magic: 0x{magic:X8}, expected 0x{MAGIC_CON:X8}");
+        if ((magic & MAGIC_CON_MASK) != MAGIC_CON_PREFIX)
+            throw new InvalidDataException($"Not a valid CON file. Magic: 0x{magic:X8}");
 
         // Read directory entries
         Entries = new List<ContainerFileEntry>();
@@ -204,8 +215,11 @@ public class StfsContainer
 
         IO.Writer.BaseStream.Position = 428;
         IO.Writer.Write(signature);
+        // Preserve the original magic bytes (first 4 bytes of the file)
+        IO.Reader.BaseStream.Position = 0;
+        uint originalMagic = IO.Reader.ReadUInt32(EndianType.BigEndian);
         IO.Writer.BaseStream.Position = 0;
-        IO.Writer.Write(MAGIC_CON);
+        IO.Writer.Write(originalMagic);
         IO.Writer.Write(signing.ReturnPublicKey());
 
         signing.KeyVaultReader.Close();

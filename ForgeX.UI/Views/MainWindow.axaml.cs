@@ -42,9 +42,9 @@ public partial class MainWindow : Window
         if (sender is not TreeView treeView) return;
         if (DataContext is not MainWindowViewModel vm) return;
 
-        if (treeView.SelectedItem is TagNode tagNode)
+        if (treeView.SelectedItem is TagClassNode node && node.IsLeaf)
         {
-            vm.TagBrowser.SelectTagEntry(tagNode.TagClass, tagNode.TagPath, tagNode.TagsIndex);
+            vm.TagBrowser.SelectTagEntry(node.TagClass, node.TagPath, node.TagsIndex);
         }
     }
 }

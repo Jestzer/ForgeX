@@ -78,8 +78,10 @@ public partial class TagBrowserViewModel : ViewModelBase
             string key = $"{entry.Tag.Class}/{entry.Tag.Path}/{entry.Tag.TagsIndex}";
             if (!addedPaths.Contains(key))
             {
-                classNode.Tags.Add(new TagNode
+                classNode.Children.Add(new TagClassNode
                 {
+                    ClassName = entry.Tag.Path,
+                    IsLeaf = true,
                     TagPath = entry.Tag.Path,
                     TagsIndex = entry.Tag.TagsIndex,
                     TagClass = entry.Tag.Class
@@ -261,10 +263,16 @@ public class TagClassNode
 {
     public string ClassName { get; set; } = "";
     public bool IsRoot { get; set; }
-    public ObservableCollection<TagNode> Tags { get; set; } = new();
+    public bool IsLeaf { get; set; }
     public ObservableCollection<TagClassNode> Children { get; set; } = new();
+
+    // Leaf node properties (when IsLeaf = true, this represents a single tag)
+    public string TagPath { get; set; } = "";
+    public string TagClass { get; set; } = "";
+    public int TagsIndex { get; set; }
 }
 
+// Keep TagNode for selection handling in code-behind
 public class TagNode
 {
     public string TagPath { get; set; } = "";
