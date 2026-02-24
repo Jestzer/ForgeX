@@ -97,6 +97,16 @@ public class BlfFile
     }
 
     /// <summary>
+    /// Returns the major version of the mvar chunk, or -1 if not present.
+    /// Used to distinguish Halo 3 (12) from Reach (31).
+    /// </summary>
+    public short GetMvarMajorVersion()
+    {
+        var mvar = GetChunk("mvar");
+        return mvar?.MajorVersion ?? -1;
+    }
+
+    /// <summary>
     /// Writes all chunks back to the original file path.
     /// </summary>
     public void Write()

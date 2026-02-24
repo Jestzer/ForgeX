@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ForgeX.Core.Blf;
 using ForgeX.Core.Halo3;
+using ForgeX.Core.Reach;
 using ForgeX.Core.Xbox360;
 using ForgeX.UI.Services;
 
@@ -14,7 +15,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private TagBrowserViewModel _tagBrowser = new();
     [ObservableProperty] private string _statusMessage = "Open a usermap file to begin.";
     [ObservableProperty] private bool _isFileLoaded;
-    [ObservableProperty] private string _windowTitle = "ForgeX - Halo 3 Forge Usermap Editor";
+    [ObservableProperty] private string _windowTitle = "ForgeX - Halo 3 / Reach Forge Usermap Editor";
     [ObservableProperty] private bool _isXbox360Format;
     [ObservableProperty] private ObservableCollection<RecentFileItem> _recentFiles = new();
     [ObservableProperty] private bool _hasUnsavedChanges;
@@ -53,7 +54,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (_variant == null)
         {
-            WindowTitle = "ForgeX - Halo 3 Forge Usermap Editor";
+            WindowTitle = "ForgeX - Halo 3 / Reach Forge Usermap Editor";
             return;
         }
         string dirty = HasUnsavedChanges ? " *" : "";
@@ -87,8 +88,13 @@ public partial class MainWindowViewModel : ViewModelBase
             }
             else if (magicStr == "_blf")
             {
-                // MCC BLF container (.mvar file)
-                _variant = new MccMapVariant(filePath);
+                // MCC BLF container (.mvar file) — detect H3 vs Reach by mvar version
+                var blf = new BlfFile(filePath);
+                short mvarVersion = blf.GetMvarMajorVersion();
+                if (mvarVersion == 31)
+                    _variant = new MccReachMapVariant(blf);
+                else
+                    _variant = new MccMapVariant(blf);
                 IsXbox360Format = false;
             }
             else
@@ -101,7 +107,7 @@ public partial class MainWindowViewModel : ViewModelBase
             TagBrowser.Load(_variant);
 
             IsFileLoaded = true;
-            string formatLabel = IsXbox360Format ? "Xbox 360" : "MCC";
+            string formatLabel = IsXbox360Format ? "Xbox 360" : _variant is MccReachMapVariant ? "MCC Reach" : "MCC";
             StatusMessage = $"Loaded ({formatLabel}): {Path.GetFileName(filePath)}";
             if (_variant is MccMapVariant mcc && mcc.DecompressedPath != null)
                 StatusMessage += $" — Decompressed copy: {Path.GetFileName(mcc.DecompressedPath)}";
@@ -195,7 +201,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         CloseCurrentFile();
         StatusMessage = "File closed.";
-        WindowTitle = "ForgeX - Halo 3 Forge Usermap Editor";
+        WindowTitle = "ForgeX - Halo 3 / Reach Forge Usermap Editor";
     }
 
     /// <summary>

@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using ForgeX.Core.Halo3;
+using ForgeX.Core.Reach;
 
 namespace ForgeX.UI.ViewModels;
 
@@ -23,7 +24,9 @@ public partial class MapHeaderViewModel : ViewModelBase
         SpawnedObjectCount = variant.SpawnedObjectCount;
         MaximumBudget = variant.MaximumBudget;
         CurrentBudget = variant.CurrentBudget;
-        MapName = variant.Tags?.MapName ?? $"Unknown ({variant.MapId})";
+        MapName = variant.Tags?.MapName
+            ?? ReachMapDefinitions.GetMapName(variant.MapId)
+            ?? $"Unknown ({variant.MapId})";
     }
 
     public void SaveTo(IMapVariantData variant)

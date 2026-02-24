@@ -15,6 +15,7 @@ public class PlacementChunk
     public TagIndexEntry? Entry { get; set; }
 
     // Packed mvar additional fields (not used by Xbox 360 or unpacked mapv paths)
+    public int VariantIndex { get; set; } = -1;
     public ushort PackedFlags { get; set; }
     public bool HasParentObject { get; set; }
     public ulong ParentObjectIdentifier { get; set; }

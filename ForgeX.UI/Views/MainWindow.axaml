@@ -42,7 +42,7 @@
             <StackPanel HorizontalAlignment="Center" Spacing="4">
                 <TextBlock Text="ForgeX" FontSize="42" FontWeight="Bold" Foreground="White"
                            HorizontalAlignment="Center" />
-                <TextBlock Text="Halo 3 Forge Usermap Editor" FontSize="16" Foreground="#FFAAAAAA"
+                <TextBlock Text="Halo 3 / Reach Forge Usermap Editor" FontSize="16" Foreground="#FFAAAAAA"
                            HorizontalAlignment="Center" />
             </StackPanel>
 

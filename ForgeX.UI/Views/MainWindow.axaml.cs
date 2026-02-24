@@ -179,11 +179,11 @@ public partial class MainWindow : Window
 
         var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Open Halo 3 Usermap",
+            Title = "Open Halo 3 / Reach Usermap",
             AllowMultiple = false,
             FileTypeFilter = new[]
             {
-                new FilePickerFileType("Halo 3 Usermaps (.mvar)") { Patterns = new[] { "*.mvar" } },
+                new FilePickerFileType("Halo 3 / Reach Usermaps (.mvar)") { Patterns = new[] { "*.mvar" } },
                 new FilePickerFileType("Xbox 360 Usermaps") { Patterns = new[] { "*" } },
                 new FilePickerFileType("All Files") { Patterns = new[] { "*" } }
             }
@@ -280,7 +280,7 @@ public partial class MainWindow : Window
         });
         content.Children.Add(new TextBlock
         {
-            Text = "Halo 3 Forge Usermap Editor",
+            Text = "Halo 3 / Reach Forge Usermap Editor",
             FontSize = 14,
             Foreground = new SolidColorBrush(Color.FromRgb(170, 170, 170)),
             HorizontalAlignment = HorizontalAlignment.Center

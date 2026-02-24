@@ -3,12 +3,14 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ForgeX.Core.Halo3;
+using ForgeX.Core.Reach;
 
 namespace ForgeX.UI.ViewModels;
 
 public partial class TagBrowserViewModel : ViewModelBase
 {
     private IMapVariantData? _variant;
+    private ReachPaletteDatabase? _palette;
     private bool _isLoadingSelection;
 
     /// <summary>
@@ -94,16 +96,16 @@ public partial class TagBrowserViewModel : ViewModelBase
         try
         {
             _variant = variant;
+            _palette = (variant as MccReachMapVariant)?.Palette;
             CanWrite = variant.CanWrite;
             TagTree.Clear();
-
-            if (variant.Tags == null) return;
 
             // Build tree: group tag index entries by class
             var addedPaths = new HashSet<string>();
             var classNodes = new Dictionary<string, TagClassNode>();
 
-            for (int i = 0; i < 256; i++)
+            int entryCount = Math.Min(variant.TagIndex.Count, 256);
+            for (int i = 0; i < entryCount; i++)
             {
                 var entry = variant.TagIndex[i];
                 if (entry.Tag == null) continue;
@@ -129,10 +131,15 @@ public partial class TagBrowserViewModel : ViewModelBase
                 }
             }
 
+            if (classNodes.Count == 0) return;
+
             // Add root node for map name
+            string mapName = variant.Tags?.MapName
+                ?? ReachMapDefinitions.GetMapName(variant.MapId)
+                ?? "Map";
             var root = new TagClassNode
             {
-                ClassName = variant.Tags.MapName ?? "Map",
+                ClassName = mapName,
                 IsRoot = true
             };
             foreach (var cn in classNodes.Values.OrderBy(c => c.ClassName))
@@ -141,8 +148,16 @@ public partial class TagBrowserViewModel : ViewModelBase
 
             // Load tag class combo box
             TagClasses.Clear();
-            foreach (var cls in variant.Tags.GetDistinctClasses())
-                TagClasses.Add(cls);
+            if (variant.Tags != null)
+            {
+                foreach (var cls in variant.Tags.GetDistinctClasses())
+                    TagClasses.Add(cls);
+            }
+            else
+            {
+                foreach (var cls in classNodes.Keys.OrderBy(c => c))
+                    TagClasses.Add(cls);
+            }
         }
         finally
         {
@@ -153,19 +168,39 @@ public partial class TagBrowserViewModel : ViewModelBase
     partial void OnSelectedTagClassChanged(string? value)
     {
         TagPaths.Clear();
-        if (value == null || _variant?.Tags == null) return;
+        if (value == null || _variant == null) return;
 
-        foreach (var tag in _variant.Tags.GetTagsByClass(value))
-            TagPaths.Add(tag.Path);
+        if (_variant.Tags != null)
+        {
+            foreach (var tag in _variant.Tags.GetTagsByClass(value))
+                TagPaths.Add(tag.Path);
+        }
+        else
+        {
+            // Reach: build paths from TagIndex entries
+            foreach (var entry in _variant.TagIndex.Where(e => e.Tag != null && e.Tag.Class == value))
+                TagPaths.Add(entry.Tag!.Path);
+        }
     }
 
     partial void OnSelectedTagPathChanged(string? value)
     {
-        if (value == null || _variant?.Tags == null || SelectedTagClass == null) return;
+        if (value == null || _variant == null || SelectedTagClass == null) return;
 
-        var tag = _variant.Tags.FindTag(SelectedTagClass, value);
-        if (tag != null)
-            Ident = tag.Ident.ToString();
+        if (_variant.Tags != null)
+        {
+            var tag = _variant.Tags.FindTag(SelectedTagClass, value);
+            if (tag != null)
+                Ident = tag.Ident.ToString();
+        }
+        else
+        {
+            // Reach: find from TagIndex
+            var entry = _variant.TagIndex.FirstOrDefault(e =>
+                e.Tag != null && e.Tag.Class == SelectedTagClass && e.Tag.Path == value);
+            if (entry?.Tag != null)
+                Ident = entry.Tag.Ident.ToString();
+        }
     }
 
     public void SelectTagEntry(string tagClass, string tagPath, int tagsIndex)
@@ -199,7 +234,7 @@ public partial class TagBrowserViewModel : ViewModelBase
             // Load placements for this tag
             Placements.Clear();
             for (int i = 0; i < entry.PlacedItems.Count; i++)
-                Placements.Add($"Placement Chunk: {i}");
+                Placements.Add(GetPlacementLabel(i, entry.PlacedItems[i]));
 
             if (Placements.Count > 0)
                 SelectedPlacementIndex = 0;
@@ -349,7 +384,7 @@ public partial class TagBrowserViewModel : ViewModelBase
         {
             Placements.Clear();
             for (int i = 0; i < SelectedEntry.PlacedItems.Count; i++)
-                Placements.Add($"Placement Chunk: {i}");
+                Placements.Add(GetPlacementLabel(i, SelectedEntry.PlacedItems[i]));
             CountOnMap = SelectedEntry.CountOnMap.ToString();
 
             // Select the newly added placement
@@ -382,7 +417,7 @@ public partial class TagBrowserViewModel : ViewModelBase
         {
             Placements.Clear();
             for (int i = 0; i < SelectedEntry.PlacedItems.Count; i++)
-                Placements.Add($"Placement Chunk: {i}");
+                Placements.Add(GetPlacementLabel(i, SelectedEntry.PlacedItems[i]));
             CountOnMap = SelectedEntry.CountOnMap.ToString();
 
             // Auto-select next available placement
@@ -393,6 +428,17 @@ public partial class TagBrowserViewModel : ViewModelBase
         {
             _isLoadingSelection = false;
         }
+    }
+
+    private string GetPlacementLabel(int index, PlacementChunk chunk)
+    {
+        if (_palette != null && chunk.VariantIndex >= 0 && chunk.TagsIndex >= 0)
+        {
+            var varName = _palette.GetVariantName(chunk.TagsIndex, chunk.VariantIndex);
+            if (varName != null)
+                return $"{index}: {varName}";
+        }
+        return $"Placement Chunk: {index}";
     }
 
     private static ChunkType ParseChunkType(string text) => text switch

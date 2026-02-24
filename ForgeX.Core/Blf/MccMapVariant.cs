@@ -77,9 +77,17 @@ public class MccMapVariant : IMapVariantData
     private const int TagIndexEntrySize = 12;
     private const int TagIndexCount = 256;
 
-    public MccMapVariant(string filePath)
+    public MccMapVariant(string filePath) : this(new BlfFile(filePath), filePath)
     {
-        _blfFile = new BlfFile(filePath);
+    }
+
+    public MccMapVariant(BlfFile blfFile) : this(blfFile, blfFile.FilePath)
+    {
+    }
+
+    private MccMapVariant(BlfFile blfFile, string filePath)
+    {
+        _blfFile = blfFile;
 
         switch (_blfFile.VariantFormat)
         {
