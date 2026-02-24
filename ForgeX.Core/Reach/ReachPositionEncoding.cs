@@ -68,6 +68,21 @@ public static class ReachPositionEncoding
         return min + (raw + 0.5f) * (range / divisor);
     }
 
+    /// <summary>
+    /// Encodes a world position value for the bitstream using the adaptive encoding.
+    /// Inverse of DecodePosition.
+    /// Formula: raw = floor((worldPos - min) * 2^bits / range - 0.5)
+    /// </summary>
+    public static uint EncodePosition(float worldPos, int bitCount, float min, float max)
+    {
+        if (bitCount == 0) return 0;
+
+        float range = max - min;
+        uint maxVal = (1u << bitCount) - 1;
+        float raw = (worldPos - min) / range * (1u << bitCount) - 0.5f;
+        return (uint)Math.Clamp((int)MathF.Floor(raw), 0, (int)maxVal);
+    }
+
     private static int HighestBitSet(int value)
     {
         int r = 0;

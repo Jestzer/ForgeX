@@ -489,7 +489,7 @@ public class MccLoadTest
 
         // Basic assertions
         Assert.Equal(3006, variant.MapId); // Forge World
-        Assert.False(variant.CanWrite);
+        Assert.True(variant.CanWrite);
         Assert.True(activePlacements > 0, "Should have active placements");
         Assert.True(variant.MaximumBudget > 0, "Budget should be positive");
 
@@ -607,6 +607,125 @@ public class MccLoadTest
 
         Console.WriteLine($"\nLoaded: {loaded}, Skipped: {skipped}, Total: {files.Length}");
         Assert.True(loaded > 0, "Should load at least one Reach file");
+    }
+
+    [Fact]
+    public void ReachMvarRoundTrip()
+    {
+        if (!Directory.Exists(ReachMvarDir))
+        {
+            Console.WriteLine("SKIP: Reach map_variants directory not found");
+            return;
+        }
+
+        // Find a Reach .mvar file to test with
+        string? testFile = null;
+        foreach (var f in Directory.GetFiles(ReachMvarDir, "*.mvar"))
+        {
+            var blf = new BlfFile(f);
+            if (blf.GetMvarMajorVersion() == 31)
+            {
+                testFile = f;
+                break;
+            }
+        }
+
+        if (testFile == null)
+        {
+            Console.WriteLine("SKIP: No Reach .mvar files found");
+            return;
+        }
+
+        Console.WriteLine($"Testing round-trip with: {Path.GetFileName(testFile)}");
+
+        // Load original
+        var origBlf = new BlfFile(testFile);
+        var origVariant = new MccReachMapVariant(origBlf);
+
+        // Save to temp file
+        string tempPath = Path.Combine(Path.GetTempPath(), "forgex_roundtrip_test.mvar");
+        try
+        {
+            // Copy original file to temp (SaveAll writes in-place via BlfFile)
+            File.Copy(testFile, tempPath, true);
+            var tempBlf = new BlfFile(tempPath);
+            var tempVariant = new MccReachMapVariant(tempBlf);
+            tempVariant.SaveAll();
+
+            // Reload the saved file
+            var savedBlf = new BlfFile(tempPath);
+            var savedVariant = new MccReachMapVariant(savedBlf);
+
+            // Compare key fields
+            Assert.Equal(origVariant.VariantName, savedVariant.VariantName);
+            Assert.Equal(origVariant.VariantDescription, savedVariant.VariantDescription);
+            Assert.Equal(origVariant.MapAuthor, savedVariant.MapAuthor);
+            Assert.Equal(origVariant.MapId, savedVariant.MapId);
+            Assert.Equal(origVariant.MaximumBudget, savedVariant.MaximumBudget);
+            Assert.Equal(origVariant.CurrentBudget, savedVariant.CurrentBudget);
+            Assert.Equal(origVariant.WorldBoundsXMin, savedVariant.WorldBoundsXMin);
+            Assert.Equal(origVariant.WorldBoundsXMax, savedVariant.WorldBoundsXMax);
+            Assert.Equal(origVariant.WorldBoundsYMin, savedVariant.WorldBoundsYMin);
+            Assert.Equal(origVariant.WorldBoundsYMax, savedVariant.WorldBoundsYMax);
+            Assert.Equal(origVariant.WorldBoundsZMin, savedVariant.WorldBoundsZMin);
+            Assert.Equal(origVariant.WorldBoundsZMax, savedVariant.WorldBoundsZMax);
+
+            // Compare placement counts
+            int origActive = origVariant.PlacementChunks.Count(p => p.TagsIndex >= 0);
+            int savedActive = savedVariant.PlacementChunks.Count(p => p.TagsIndex >= 0);
+            Assert.Equal(origActive, savedActive);
+
+            // Compare individual placements
+            for (int i = 0; i < origVariant.PlacementChunks.Count; i++)
+            {
+                var orig = origVariant.PlacementChunks[i];
+                var saved = savedVariant.PlacementChunks[i];
+                Assert.Equal(orig.TagsIndex, saved.TagsIndex);
+
+                if (orig.TagsIndex < 0) continue;
+
+                // Position: allow small float tolerance from quantization
+                Assert.InRange(saved.SpawnCoords.X, orig.SpawnCoords.X - 0.1f, orig.SpawnCoords.X + 0.1f);
+                Assert.InRange(saved.SpawnCoords.Y, orig.SpawnCoords.Y - 0.1f, orig.SpawnCoords.Y + 0.1f);
+                Assert.InRange(saved.SpawnCoords.Z, orig.SpawnCoords.Z - 0.1f, orig.SpawnCoords.Z + 0.1f);
+
+                Assert.Equal(orig.VariantIndex, saved.VariantIndex);
+                Assert.Equal(orig.PackedFlags, saved.PackedFlags);
+                Assert.Equal(orig.ObjectType, saved.ObjectType);
+                Assert.Equal(orig.RespawnTime, saved.RespawnTime);
+                Assert.Equal(orig.Flags, saved.Flags);
+                Assert.Equal(orig.ReachTeamRaw, saved.ReachTeamRaw);
+            }
+
+            // Compare quotas
+            int origQuotas = origVariant.TagIndex.Count(e => e.Ident >= 0);
+            int savedQuotas = savedVariant.TagIndex.Count(e => e.Ident >= 0);
+            Assert.Equal(origQuotas, savedQuotas);
+
+            for (int i = 0; i < origVariant.TagIndex.Count; i++)
+            {
+                var orig = origVariant.TagIndex[i];
+                var saved = savedVariant.TagIndex[i];
+                if (orig.Ident < 0) continue;
+                Assert.Equal(orig.RunTimeMinimum, saved.RunTimeMinimum);
+                Assert.Equal(orig.RunTimeMaximum, saved.RunTimeMaximum);
+                Assert.Equal(orig.CountOnMap, saved.CountOnMap);
+            }
+
+            Console.WriteLine("Round-trip test PASSED");
+            Console.WriteLine($"  Name: {savedVariant.VariantName}");
+            Console.WriteLine($"  Active placements: {savedActive}");
+            Console.WriteLine($"  Active quotas: {savedQuotas}");
+
+            savedVariant.CloseIO();
+            tempVariant.CloseIO();
+        }
+        finally
+        {
+            if (File.Exists(tempPath)) File.Delete(tempPath);
+        }
+
+        origVariant.CloseIO();
     }
 
     [Fact]

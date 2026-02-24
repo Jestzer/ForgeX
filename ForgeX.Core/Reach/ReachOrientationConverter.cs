@@ -4,7 +4,7 @@ using ForgeX.Core.Halo3;
 namespace ForgeX.Core.Reach;
 
 /// <summary>
-/// Decodes Reach's orientation encoding: 20-bit axis vector (lookup-table cube-face)
+/// Encodes and decodes Reach's orientation encoding: 20-bit axis vector (lookup-table cube-face)
 /// + 14-bit rotation angle. Different from H3's 19-bit cube-face + 8-bit forward angle.
 /// </summary>
 public static class ReachOrientationConverter
@@ -119,5 +119,80 @@ public static class ReachOrientationConverter
         const float range = twoPi;
         const float divisor = 16384f; // 2^14
         return -MathF.PI + (raw + 0.5f) * (range / divisor);
+    }
+
+    /// <summary>
+    /// Writes orientation to the Reach bitstream. Inverse of ReadOrientation.
+    /// Encodes up vector (default or 20-bit) + 14-bit forward angle.
+    /// </summary>
+    public static void WriteOrientation(BitWriter bits,
+        float fwdI, float fwdJ, float fwdK,
+        float upI, float upJ, float upK)
+    {
+        bool isDefault = MathF.Abs(upI) < 1e-4f && MathF.Abs(upJ) < 1e-4f && upK > 0.999f;
+        bits.WriteBool(isDefault);
+        if (!isDefault)
+        {
+            uint encoded = Encode20BitAxis(upI, upJ, upK);
+            bits.WriteInteger(encoded, 20);
+        }
+
+        float angle = OrientationConverter.AxesToAngle(upI, upJ, upK, fwdI, fwdJ, fwdK);
+        bits.WriteInteger(EncodeAngle14(angle), 14);
+    }
+
+    /// <summary>
+    /// Encodes a unit vector to 20-bit cube-face projection. Inverse of Decode20BitAxis.
+    /// </summary>
+    public static uint Encode20BitAxis(float i, float j, float k)
+    {
+        // Normalize
+        float len = MathF.Sqrt(i * i + j * j + k * k);
+        if (len > 1e-6f) { i /= len; j /= len; k /= len; }
+
+        float absI = MathF.Abs(i), absJ = MathF.Abs(j), absK = MathF.Abs(k);
+        int face;
+        float u, v;
+
+        if (absI >= absJ && absI >= absK)
+        {
+            if (i > 0) { face = 0; u = j / absI; v = k / absI; }
+            else        { face = 3; u = j / absI; v = k / absI; }
+        }
+        else if (absJ >= absI && absJ >= absK)
+        {
+            if (j > 0) { face = 1; u = i / absJ; v = k / absJ; }
+            else        { face = 4; u = i / absJ; v = k / absJ; }
+        }
+        else
+        {
+            if (k > 0) { face = 2; u = i / absK; v = j / absK; }
+            else        { face = 5; u = i / absK; v = j / absK; }
+        }
+
+        int qu = QuantizeAxis(u, AxisSubdivisions - 1);
+        int qv = QuantizeAxis(v, AxisSubdivisions - 1);
+        return (uint)(face * AxisDivisor + qu * AxisSubdivisions + qv);
+    }
+
+    /// <summary>
+    /// Quantizes a value from [-1, 1] to [0, stepCount]. Inverse of DequantizeAxis.
+    /// </summary>
+    private static int QuantizeAxis(float value, int stepCount)
+    {
+        float scale = 2.0f / stepCount;
+        int quantized = (int)MathF.Round((value + 1.0f - scale * 0.5f) / scale);
+        return Math.Clamp(quantized, 0, stepCount);
+    }
+
+    /// <summary>
+    /// Encodes an angle from [-PI, PI] to 14-bit. Inverse of DecodeAngle14.
+    /// </summary>
+    private static uint EncodeAngle14(float angle)
+    {
+        const float twoPi = 2f * MathF.PI;
+        const float divisor = 16384f;
+        float raw = (angle + MathF.PI) * divisor / twoPi - 0.5f;
+        return (uint)Math.Clamp((int)MathF.Round(raw), 0, 16383);
     }
 }

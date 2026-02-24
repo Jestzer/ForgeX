@@ -29,6 +29,16 @@ public class PlacementChunk
     public float BoundaryPositiveHeight { get; set; }
     public float BoundaryNegativeHeight { get; set; }
 
+    // Reach-specific fields (round-trip storage for write support)
+    public int SpawnRelativeTo { get; set; } = -1;
+    public byte SpawnSequence { get; set; }
+    public int LabelIndex { get; set; } = -1;
+    public int PrimaryColorIndex { get; set; } = -1;
+    public byte TeleporterChannel { get; set; }
+    public byte TeleporterPassability { get; set; }
+    public int LocationNameIndex { get; set; } = -1;
+    public uint ReachTeamRaw { get; set; } // Raw 4-bit team value for Reach round-trip
+
     // Flag bit accessors (bits 1, 2, 3 from the original UI)
     public bool Flag1
     {
