@@ -376,6 +376,7 @@ public partial class TagBrowserViewModel : ViewModelBase
         MarkDirty?.Invoke();
 
         // Refresh
+        int deletedIndex = SelectedPlacementIndex;
         _isLoadingSelection = true;
         try
         {
@@ -383,6 +384,10 @@ public partial class TagBrowserViewModel : ViewModelBase
             for (int i = 0; i < SelectedEntry.PlacedItems.Count; i++)
                 Placements.Add($"Placement Chunk: {i}");
             CountOnMap = SelectedEntry.CountOnMap.ToString();
+
+            // Auto-select next available placement
+            if (SelectedEntry.PlacedItems.Count > 0)
+                SelectedPlacementIndex = Math.Min(deletedIndex, SelectedEntry.PlacedItems.Count - 1);
         }
         finally
         {
