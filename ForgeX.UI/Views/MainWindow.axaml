@@ -17,7 +17,6 @@
                 <MenuItem Header="Recent Files" x:Name="RecentFilesMenu" />
                 <Separator />
                 <MenuItem Header="_Save" Command="{Binding SaveCommand}" InputGesture="Ctrl+S" />
-                <MenuItem Header="_Re-sign Container" Command="{Binding ResignContainerCommand}" IsVisible="{Binding IsXbox360Format}" />
                 <Separator />
                 <MenuItem Header="_Close" Command="{Binding CloseFileCommand}" />
             </MenuItem>

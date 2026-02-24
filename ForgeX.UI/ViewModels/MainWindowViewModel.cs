@@ -160,8 +160,14 @@ public partial class MainWindowViewModel : ViewModelBase
             // Write everything to disk in one operation
             _variant.SaveAll();
 
+            // Re-sign Xbox 360 STFS containers after saving
+            if (_container != null)
+            {
+                _container.Resign();
+            }
+
             HasUnsavedChanges = false;
-            StatusMessage = "File saved.";
+            StatusMessage = _container != null ? "File saved and re-signed." : "File saved.";
             UpdateWindowTitle();
         }
         catch (Exception ex)
@@ -175,23 +181,6 @@ public partial class MainWindowViewModel : ViewModelBase
     private void ShowAbout()
     {
         ShowAboutDialog?.Invoke();
-    }
-
-    [RelayCommand]
-    private void ResignContainer()
-    {
-        if (_container == null) return;
-
-        try
-        {
-            _container.Resign();
-            StatusMessage = "Container re-signed successfully.";
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Error re-signing: {ex.Message}";
-            ShowError?.Invoke("Error Re-signing Container", ex.Message);
-        }
     }
 
     [RelayCommand]
