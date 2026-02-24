@@ -39,23 +39,38 @@ public class PlacementChunk
     public int LocationNameIndex { get; set; } = -1;
     public uint ReachTeamRaw { get; set; } // Raw 4-bit team value for Reach round-trip
 
-    // Flag bit accessors (bits 1, 2, 3 from the original UI)
-    public bool Flag1
+    // Flag bit accessors — definitions from Mjolnir ForgeLib/ForgeObject.cs
+    public bool HideAtStart
     {
         get => (Flags & 0x02) != 0;
         set => Flags = (byte)(value ? Flags | 0x02 : Flags & ~0x02);
     }
 
-    public bool Flag2
+    public bool Symmetric
     {
         get => (Flags & 0x04) != 0;
         set => Flags = (byte)(value ? Flags | 0x04 : Flags & ~0x04);
     }
 
-    public bool Flag3
+    public bool Asymmetric
     {
         get => (Flags & 0x08) != 0;
         set => Flags = (byte)(value ? Flags | 0x08 : Flags & ~0x08);
+    }
+
+    public bool GameSpecific
+    {
+        get => (Flags & 0x20) != 0;
+        set => Flags = (byte)(value ? Flags | 0x20 : Flags & ~0x20);
+    }
+
+    /// <summary>
+    /// Physics mode from bits 7-6 (0xC0 mask): 0=Normal, 1=Fixed, 3=Phased.
+    /// </summary>
+    public byte PhysicsMode
+    {
+        get => (byte)((Flags >> 6) & 0x03);
+        set => Flags = (byte)((Flags & ~0xC0) | ((value & 0x03) << 6));
     }
 
     public void Read(EndianReader reader)

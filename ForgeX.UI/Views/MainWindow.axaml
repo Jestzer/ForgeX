@@ -250,9 +250,21 @@
                             </Grid>
 
                             <StackPanel Orientation="Horizontal" Spacing="16">
-                                <CheckBox Content="Flag 1" IsChecked="{Binding TagBrowser.PlacementFlag1}" Foreground="White" />
-                                <CheckBox Content="Flag 2" IsChecked="{Binding TagBrowser.PlacementFlag2}" Foreground="White" />
-                                <CheckBox Content="Flag 3" IsChecked="{Binding TagBrowser.PlacementFlag3}" Foreground="White" />
+                                <CheckBox Content="Hide at Start" IsChecked="{Binding TagBrowser.PlacementHideAtStart}" Foreground="White" />
+                                <CheckBox Content="Symmetric" IsChecked="{Binding TagBrowser.PlacementSymmetric}" Foreground="White" />
+                                <CheckBox Content="Asymmetric" IsChecked="{Binding TagBrowser.PlacementAsymmetric}" Foreground="White" />
+                                <CheckBox Content="Game Specific" IsChecked="{Binding TagBrowser.PlacementGameSpecific}" Foreground="White"
+                                          IsVisible="{Binding TagBrowser.IsMcc}" />
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding TagBrowser.IsMcc}">
+                                <TextBlock Text="Physics:" Foreground="White" VerticalAlignment="Center" />
+                                <ComboBox SelectedIndex="{Binding TagBrowser.PlacementPhysicsMode}" MinWidth="100">
+                                    <ComboBoxItem Content="Normal" />
+                                    <ComboBoxItem Content="Fixed" />
+                                    <ComboBoxItem Content="Undefined" />
+                                    <ComboBoxItem Content="Phased" />
+                                </ComboBox>
                             </StackPanel>
 
                             <Button Content="Delete Placement" Command="{Binding TagBrowser.DeletePlacementCommand}"

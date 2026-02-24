@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ForgeX.Core.Blf;
 using ForgeX.Core.Halo3;
 using ForgeX.Core.Reach;
 
@@ -29,7 +30,8 @@ public partial class TagBrowserViewModel : ViewModelBase
         nameof(PlacementX), nameof(PlacementY), nameof(PlacementZ),
         nameof(PlacementYaw), nameof(PlacementPitch), nameof(PlacementRoll),
         nameof(PlacementRespawnTime), nameof(PlacementTeam), nameof(PlacementSpareClips),
-        nameof(PlacementFlag1), nameof(PlacementFlag2), nameof(PlacementFlag3),
+        nameof(PlacementHideAtStart), nameof(PlacementSymmetric), nameof(PlacementAsymmetric),
+        nameof(PlacementGameSpecific), nameof(PlacementPhysicsMode),
         nameof(PlacementChunkType)
     };
 
@@ -52,6 +54,7 @@ public partial class TagBrowserViewModel : ViewModelBase
     [ObservableProperty] private string _cost = "";
     [ObservableProperty] private bool _isTagSelected;
     [ObservableProperty] private bool _canWrite;
+    [ObservableProperty] private bool _isMcc;
 
     // Placement list for selected tag
     [ObservableProperty] private ObservableCollection<string> _placements = new();
@@ -69,9 +72,11 @@ public partial class TagBrowserViewModel : ViewModelBase
     [ObservableProperty] private string _placementRespawnTime = "";
     [ObservableProperty] private string _placementTeam = "";
     [ObservableProperty] private string _placementSpareClips = "";
-    [ObservableProperty] private bool _placementFlag1;
-    [ObservableProperty] private bool _placementFlag2;
-    [ObservableProperty] private bool _placementFlag3;
+    [ObservableProperty] private bool _placementHideAtStart;
+    [ObservableProperty] private bool _placementSymmetric;
+    [ObservableProperty] private bool _placementAsymmetric;
+    [ObservableProperty] private bool _placementGameSpecific;
+    [ObservableProperty] private int _placementPhysicsMode;
     [ObservableProperty] private string _placementChunkType = "";
     [ObservableProperty] private ObservableCollection<string> _chunkTypes = new()
     {
@@ -98,6 +103,7 @@ public partial class TagBrowserViewModel : ViewModelBase
             _variant = variant;
             _palette = (variant as MccReachMapVariant)?.Palette;
             CanWrite = variant.CanWrite;
+            IsMcc = variant is MccMapVariant or MccReachMapVariant;
             TagTree.Clear();
 
             // Build tree: group tag index entries by class
@@ -275,9 +281,11 @@ public partial class TagBrowserViewModel : ViewModelBase
             PlacementRespawnTime = chunk.RespawnTime.ToString();
             PlacementTeam = chunk.Team.ToString();
             PlacementSpareClips = chunk.SpareClips.ToString();
-            PlacementFlag1 = chunk.Flag1;
-            PlacementFlag2 = chunk.Flag2;
-            PlacementFlag3 = chunk.Flag3;
+            PlacementHideAtStart = chunk.HideAtStart;
+            PlacementSymmetric = chunk.Symmetric;
+            PlacementAsymmetric = chunk.Asymmetric;
+            PlacementGameSpecific = chunk.GameSpecific;
+            PlacementPhysicsMode = chunk.PhysicsMode;
             PlacementChunkType = chunk.ChunkType.ToString();
         }
         finally
@@ -336,9 +344,11 @@ public partial class TagBrowserViewModel : ViewModelBase
         if (byte.TryParse(PlacementRespawnTime, out byte rt)) chunk.RespawnTime = rt;
         if (byte.TryParse(PlacementTeam, out byte team)) chunk.Team = team;
         if (byte.TryParse(PlacementSpareClips, out byte sc)) chunk.SpareClips = sc;
-        chunk.Flag1 = PlacementFlag1;
-        chunk.Flag2 = PlacementFlag2;
-        chunk.Flag3 = PlacementFlag3;
+        chunk.HideAtStart = PlacementHideAtStart;
+        chunk.Symmetric = PlacementSymmetric;
+        chunk.Asymmetric = PlacementAsymmetric;
+        chunk.GameSpecific = PlacementGameSpecific;
+        chunk.PhysicsMode = (byte)PlacementPhysicsMode;
         chunk.ChunkType = ParseChunkType(PlacementChunkType);
     }
 
