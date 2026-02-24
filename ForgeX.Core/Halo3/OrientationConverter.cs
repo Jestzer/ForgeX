@@ -223,6 +223,44 @@ public static class OrientationConverter
     }
 
     /// <summary>
+    /// Computes the forward angle from forward and up vectors.
+    /// Inverse of AngleToAxesInternal: projects the forward vector onto the reference frame
+    /// to recover the rotation angle.
+    /// </summary>
+    public static float AxesToAngle(float upI, float upJ, float upK,
+        float forwardI, float forwardJ, float forwardK)
+    {
+        AxesComputeReferenceInternal(upI, upJ, upK,
+            out float refFwdI, out float refFwdJ, out float refFwdK,
+            out float refLeftI, out float refLeftJ, out float refLeftK);
+
+        // v = dot(refFwd, forward), u = dot(refLeft, forward)
+        float v = refFwdI * forwardI + refFwdJ * forwardJ + refFwdK * forwardK;
+        float u = refLeftI * forwardI + refLeftJ * forwardJ + refLeftK * forwardK;
+        return MathF.Atan2(u, v);
+    }
+
+    /// <summary>
+    /// Writes forward and up axes to a packed mvar bitstream.
+    /// Inverse of ReadAxes: encodes up vector (global or 19-bit quantized) + 8-bit forward angle.
+    /// </summary>
+    public static void WriteAxes(BitWriter bits,
+        float fwdI, float fwdJ, float fwdK,
+        float upI, float upJ, float upK)
+    {
+        bool isGlobalUp = MathF.Abs(upI) < 1e-4f && MathF.Abs(upJ) < 1e-4f && upK > 0.999f;
+        bits.WriteBool(isGlobalUp);
+        if (!isGlobalUp)
+        {
+            uint encoded = EncodeCompressedAxis(upI, upJ, upK);
+            bits.WriteInteger(encoded, 19);
+        }
+
+        float angle = AxesToAngle(upI, upJ, upK, fwdI, fwdJ, fwdK);
+        bits.WriteQuantizedReal(angle, 8, -MathF.PI, MathF.PI, true);
+    }
+
+    /// <summary>
     /// Decodes a 19-bit compressed axis vector (legacy method kept for compatibility).
     /// </summary>
     public static (float I, float J, float K) DecodeCompressedAxis(uint encoded19Bits)

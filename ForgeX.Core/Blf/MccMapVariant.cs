@@ -31,11 +31,34 @@ public class MccMapVariant : IMapVariantData
     public List<TagIndexEntry> TagIndex { get; set; } = new();
     public List<PlacementChunk> PlacementChunks { get; set; } = new();
     public TagDatabase? Tags { get; set; }
+    public bool CanWrite => true;
 
     /// <summary>
     /// If the file was compressed, this is the path to the decompressed copy that was created.
     /// </summary>
     public string? DecompressedPath { get; private set; }
+
+    // Packed header metadata (stored during LoadPacked for round-trip writing)
+    private ulong _packedUniqueId;
+    private int _packedFileType;
+    private bool _packedAuthorIsXuidOnline;
+    private ulong _packedAuthorId;
+    private ulong _packedSizeInBytes;
+    private ulong _packedDate;
+    private uint _packedLengthSeconds;
+    private int _packedCampaignId;
+    private uint _packedGameEngineType;
+    private int _packedCampaignDifficulty;
+    private int _packedHopperId;
+    private ulong _packedGameId;
+    private int _packedVariantVersion;
+    private uint _packedMapRsaHash;
+    private int _packedNumberOfScenarioObjects;
+    private int _packedNumberOfVariantObjects;
+    private int _packedNumberOfQuotas;
+    private bool _packedBuiltIn;
+    private uint _packedGameEngineSubtype;
+    private int[] _packedObjectTypeStartIndex = new int[14];
 
     // Unpacked mapv byte-aligned offsets (within chunk payload)
     // Payload starts with 12 bytes: unique_id(8) + unknown(4), then name
@@ -225,31 +248,31 @@ public class MccMapVariant : IMapVariantData
 
         // === s_content_item_metadata ===
         // Field order and widths from Blam-Network/blf reference implementation
-        bits.ReadInteger64(64);                          // unique_id
+        _packedUniqueId = bits.ReadInteger64(64);        // unique_id
         VariantName = bits.ReadStringWchar(32);          // variable-length, up to 32 wchars
         VariantDescription = bits.ReadStringUtf8(128);   // variable-length, up to 128 bytes
         MapAuthor = bits.ReadStringUtf8(16);             // variable-length, up to 16 bytes
-        bits.ReadSignedInteger(5);                       // file_type (signed 5 bits, stored as value+1)
-        bits.ReadBool();                                 // author_is_xuid_online
-        bits.ReadInteger64(64);                          // author_id
-        bits.ReadInteger64(64);                          // size_in_bytes
-        bits.ReadInteger64(64);                          // date
-        bits.ReadInteger(32);                            // length_seconds
-        bits.ReadSignedInteger(32);                      // campaign_id
+        _packedFileType = bits.ReadSignedInteger(5);     // file_type (signed 5 bits, stored as value+1)
+        _packedAuthorIsXuidOnline = bits.ReadBool();     // author_is_xuid_online
+        _packedAuthorId = bits.ReadInteger64(64);        // author_id
+        _packedSizeInBytes = bits.ReadInteger64(64);     // size_in_bytes
+        _packedDate = bits.ReadInteger64(64);            // date
+        _packedLengthSeconds = bits.ReadInteger(32);     // length_seconds
+        _packedCampaignId = bits.ReadSignedInteger(32);  // campaign_id
         MapId = bits.ReadSignedInteger(32);              // map_id
-        bits.ReadInteger(4);                             // game_engine_type (4 bits, not 32!)
-        bits.ReadSignedInteger(3);                       // campaign_difficulty (signed 3 bits, stored as value+1)
-        bits.ReadSignedInteger(16);                      // hopper_id
-        bits.ReadInteger64(64);                          // game_id
+        _packedGameEngineType = bits.ReadInteger(4);     // game_engine_type (4 bits, not 32!)
+        _packedCampaignDifficulty = bits.ReadSignedInteger(3); // campaign_difficulty (signed 3 bits, stored as value+1)
+        _packedHopperId = bits.ReadSignedInteger(16);    // hopper_id
+        _packedGameId = bits.ReadInteger64(64);          // game_id
 
         // === c_map_variant header ===
-        int variantVersion = (int)bits.ReadInteger(8);   // 8 bits (not 4!)
-        bits.ReadInteger(32);                            // original_map_rsa_signature_hash
-        int numberOfScenarioObjects = (int)bits.ReadInteger(10); // scenario object count
-        int numberOfVariantObjects = (int)bits.ReadInteger(10);  // variant object count
-        int numberOfQuotas = (int)bits.ReadInteger(9);   // placeable quota count
-        int headerMapId = (int)bits.ReadInteger(32);     // map_id (in variant header)
-        bits.ReadBool();                                 // built_in
+        _packedVariantVersion = (int)bits.ReadInteger(8);   // 8 bits (not 4!)
+        _packedMapRsaHash = bits.ReadInteger(32);           // original_map_rsa_signature_hash
+        _packedNumberOfScenarioObjects = (int)bits.ReadInteger(10); // scenario object count
+        _packedNumberOfVariantObjects = (int)bits.ReadInteger(10);  // variant object count
+        _packedNumberOfQuotas = (int)bits.ReadInteger(9);   // placeable quota count
+        int headerMapId = (int)bits.ReadInteger(32);        // map_id (in variant header)
+        _packedBuiltIn = bits.ReadBool();                   // built_in
 
         // World bounds: 6 × 32-bit raw floats (192 bits raw data)
         WorldBoundsXMin = bits.ReadRawFloat();
@@ -259,7 +282,7 @@ public class MccMapVariant : IMapVariantData
         WorldBoundsZMin = bits.ReadRawFloat();
         WorldBoundsZMax = bits.ReadRawFloat();
 
-        bits.ReadInteger(4);                             // game_engine_subtype (4 bits)
+        _packedGameEngineSubtype = bits.ReadInteger(4);    // game_engine_subtype (4 bits)
         MaximumBudget = bits.ReadRawFloat();             // 32-bit raw float
         CurrentBudget = bits.ReadRawFloat();             // 32-bit raw float
 
@@ -270,7 +293,7 @@ public class MccMapVariant : IMapVariantData
         // The packed format iterates numberOfVariantObjects times (not always 640).
         // Each slot has a 1-bit exists flag, then conditional data.
         PlacementChunks = new List<PlacementChunk>(PlacementCount);
-        for (int i = 0; i < numberOfVariantObjects; i++)
+        for (int i = 0; i < _packedNumberOfVariantObjects; i++)
         {
             var placement = new PlacementChunk();
             placement.Offset = i;
@@ -285,20 +308,20 @@ public class MccMapVariant : IMapVariantData
             }
 
             // Object exists: read flags and quota index
-            int flags = (int)bits.ReadInteger(16);       // 16 bits (not 8!)
-            placement.Flags = (byte)(flags & 0xFF);
+            placement.PackedFlags = (ushort)bits.ReadInteger(16);
+            placement.Flags = (byte)(placement.PackedFlags & 0xFF);
             placement.TagsIndex = bits.ReadSignedInteger(32); // variant_quota_index
 
             // Parent object (conditional)
-            bool parentObjectExists = bits.ReadBool();
-            if (parentObjectExists)
+            placement.HasParentObject = bits.ReadBool();
+            if (placement.HasParentObject)
             {
-                bits.ReadInteger64(64);                  // parent_object_identifier (64 bits raw)
+                placement.ParentObjectIdentifier = bits.ReadInteger64(64);
             }
 
             // Position data (conditional)
-            bool hasPosition = bits.ReadBool();
-            if (!hasPosition)
+            placement.HasPosition = bits.ReadBool();
+            if (!placement.HasPosition)
             {
                 // Scenario object with unmodified position — no position/orientation data
                 placement.ChunkType = ChunkType.Original;
@@ -325,35 +348,35 @@ public class MccMapVariant : IMapVariantData
             };
 
             // Multiplayer game object properties
-            int objectType = bits.ReadSignedInteger(8);          // object_type (signed 8)
-            int symmetryFlags = (int)bits.ReadInteger(8);        // symmetry_placement_flags
-            int gameEngineFlags = (int)bits.ReadInteger(16);     // game_engine_flags
-            placement.SpareClips = (byte)bits.ReadInteger(8);    // shared_storage (spare_clips/teleporter/spawn_rate)
-            placement.RespawnTime = (byte)bits.ReadInteger(8);   // spawn_time
-            placement.Team = (byte)bits.ReadInteger(8);          // owner_team
-            int boundaryShape = (int)bits.ReadInteger(8);        // boundary_shape
+            placement.ObjectType = bits.ReadSignedInteger(8);
+            placement.SymmetryFlags = (byte)bits.ReadInteger(8);
+            placement.GameEngineFlags = (ushort)bits.ReadInteger(16);
+            placement.SpareClips = (byte)bits.ReadInteger(8);
+            placement.RespawnTime = (byte)bits.ReadInteger(8);
+            placement.Team = (byte)bits.ReadInteger(8);
+            placement.BoundaryShape = (byte)bits.ReadInteger(8);
 
             // Boundary data (conditional based on shape)
-            switch (boundaryShape)
+            switch (placement.BoundaryShape)
             {
                 case 1: // sphere
-                    bits.ReadQuantizedReal(16, 0f, 60f, false);  // boundary_size
-                    bits.ReadQuantizedReal(16, 0f, 60f, false);  // boundary_negative_height
+                    placement.BoundarySize = bits.ReadQuantizedReal(16, 0f, 60f, false);
+                    placement.BoundaryNegativeHeight = bits.ReadQuantizedReal(16, 0f, 60f, false);
                     break;
                 case 2: // cylinder
-                    bits.ReadQuantizedReal(16, 0f, 60f, false);  // boundary_size
-                    bits.ReadQuantizedReal(16, 0f, 60f, false);  // boundary_box_length
-                    bits.ReadQuantizedReal(16, 0f, 60f, false);  // boundary_positive_height
+                    placement.BoundarySize = bits.ReadQuantizedReal(16, 0f, 60f, false);
+                    placement.BoundaryBoxLength = bits.ReadQuantizedReal(16, 0f, 60f, false);
+                    placement.BoundaryPositiveHeight = bits.ReadQuantizedReal(16, 0f, 60f, false);
                     break;
                 case 3: // box
-                    bits.ReadQuantizedReal(16, 0f, 60f, false);  // boundary_size
-                    bits.ReadQuantizedReal(16, 0f, 60f, false);  // boundary_box_length
-                    bits.ReadQuantizedReal(16, 0f, 60f, false);  // boundary_positive_height
-                    bits.ReadQuantizedReal(16, 0f, 60f, false);  // boundary_negative_height
+                    placement.BoundarySize = bits.ReadQuantizedReal(16, 0f, 60f, false);
+                    placement.BoundaryBoxLength = bits.ReadQuantizedReal(16, 0f, 60f, false);
+                    placement.BoundaryPositiveHeight = bits.ReadQuantizedReal(16, 0f, 60f, false);
+                    placement.BoundaryNegativeHeight = bits.ReadQuantizedReal(16, 0f, 60f, false);
                     break;
             }
 
-            placement.ChunkType = i < numberOfScenarioObjects ? ChunkType.Edited : ChunkType.Added;
+            placement.ChunkType = i < _packedNumberOfScenarioObjects ? ChunkType.Edited : ChunkType.Added;
             PlacementChunks.Add(placement);
         }
 
@@ -373,11 +396,11 @@ public class MccMapVariant : IMapVariantData
         // === object_type_start_index[14] ===
         // Each is 9 bits, stored as value+1
         for (int i = 0; i < 14; i++)
-            bits.ReadInteger(9);
+            _packedObjectTypeStartIndex[i] = (int)bits.ReadInteger(9);
 
         // === quotas (tag index entries) ===
         TagIndex = new List<TagIndexEntry>(TagIndexCount);
-        for (int i = 0; i < numberOfQuotas && i < TagIndexCount; i++)
+        for (int i = 0; i < _packedNumberOfQuotas && i < TagIndexCount; i++)
         {
             var entry = new TagIndexEntry();
             entry.Offset = i;
@@ -439,9 +462,8 @@ public class MccMapVariant : IMapVariantData
     {
         if (_blfFile.VariantFormat == BlfVariantFormat.PackedMvar)
         {
-            // For packed format, we need to re-encode the entire bitstream
-            // For now, throw - we'll implement this when write support is needed
-            throw new NotSupportedException("Writing packed mvar files is not yet supported.");
+            WritePacked();
+            return;
         }
 
         WriteHeaderUnpacked();
@@ -474,8 +496,11 @@ public class MccMapVariant : IMapVariantData
 
     public void WritePlacement(PlacementChunk chunk)
     {
-        if (_blfFile.VariantFormat != BlfVariantFormat.UnpackedMapv)
-            throw new NotSupportedException("Writing placements is only supported for unpacked mapv format.");
+        if (_blfFile.VariantFormat == BlfVariantFormat.PackedMvar)
+        {
+            WritePacked();
+            return;
+        }
 
         using var ms = new MemoryStream(_payload);
         var writer = new EndianWriter(ms, EndianType.BigEndian);
@@ -528,8 +553,11 @@ public class MccMapVariant : IMapVariantData
 
     public void WriteTagIndexEntry(TagIndexEntry entry)
     {
-        if (_blfFile.VariantFormat != BlfVariantFormat.UnpackedMapv)
-            throw new NotSupportedException("Writing tag index is only supported for unpacked mapv format.");
+        if (_blfFile.VariantFormat == BlfVariantFormat.PackedMvar)
+        {
+            WritePacked();
+            return;
+        }
 
         int offset = OffsetTagIndex + TagIndex.IndexOf(entry) * TagIndexEntrySize;
 
@@ -551,6 +579,146 @@ public class MccMapVariant : IMapVariantData
         // Cost (big-endian float)
         WriteBEFloat(writer, entry.Cost);
 
+        FlushToFile();
+    }
+
+    private void WritePacked()
+    {
+        var bits = new BitWriter();
+
+        // === s_content_item_metadata ===
+        bits.WriteInteger64(_packedUniqueId, 64);
+        bits.WriteStringWchar(VariantName, 32);
+        bits.WriteStringUtf8(VariantDescription, 128);
+        bits.WriteStringUtf8(MapAuthor, 16);
+        bits.WriteSignedInteger(_packedFileType, 5);
+        bits.WriteBool(_packedAuthorIsXuidOnline);
+        bits.WriteInteger64(_packedAuthorId, 64);
+        bits.WriteInteger64(_packedSizeInBytes, 64);
+        bits.WriteInteger64(_packedDate, 64);
+        bits.WriteInteger(_packedLengthSeconds, 32);
+        bits.WriteSignedInteger(_packedCampaignId, 32);
+        bits.WriteSignedInteger(MapId, 32);
+        bits.WriteInteger(_packedGameEngineType, 4);
+        bits.WriteSignedInteger(_packedCampaignDifficulty, 3);
+        bits.WriteSignedInteger(_packedHopperId, 16);
+        bits.WriteInteger64(_packedGameId, 64);
+
+        // === c_map_variant header ===
+        bits.WriteInteger((uint)_packedVariantVersion, 8);
+        bits.WriteInteger(_packedMapRsaHash, 32);
+        bits.WriteInteger((uint)_packedNumberOfScenarioObjects, 10);
+        bits.WriteInteger((uint)_packedNumberOfVariantObjects, 10);
+
+        // Recount quotas from current TagIndex (number of non-empty entries)
+        int quotaCount = 0;
+        for (int i = 0; i < TagIndex.Count; i++)
+        {
+            if (TagIndex[i].Ident != -1 && TagIndex[i].Ident != 0)
+                quotaCount = i + 1;
+        }
+        if (quotaCount > _packedNumberOfQuotas)
+            _packedNumberOfQuotas = quotaCount;
+        bits.WriteInteger((uint)_packedNumberOfQuotas, 9);
+
+        bits.WriteInteger((uint)MapId, 32);
+        bits.WriteBool(_packedBuiltIn);
+
+        // World bounds: 6 × 32-bit raw floats
+        bits.WriteRawFloat(WorldBoundsXMin);
+        bits.WriteRawFloat(WorldBoundsXMax);
+        bits.WriteRawFloat(WorldBoundsYMin);
+        bits.WriteRawFloat(WorldBoundsYMax);
+        bits.WriteRawFloat(WorldBoundsZMin);
+        bits.WriteRawFloat(WorldBoundsZMax);
+
+        bits.WriteInteger(_packedGameEngineSubtype, 4);
+        bits.WriteRawFloat(MaximumBudget);
+        bits.WriteRawFloat(CurrentBudget);
+
+        // === variant_objects ===
+        for (int i = 0; i < _packedNumberOfVariantObjects; i++)
+        {
+            var placement = i < PlacementChunks.Count ? PlacementChunks[i] : null;
+            bool exists = placement != null && placement.TagsIndex >= 0;
+
+            bits.WriteBool(exists);
+            if (!exists)
+                continue;
+
+            // Flags and quota index
+            bits.WriteInteger(placement!.PackedFlags, 16);
+            bits.WriteSignedInteger(placement.TagsIndex, 32);
+
+            // Parent object (conditional)
+            bits.WriteBool(placement.HasParentObject);
+            if (placement.HasParentObject)
+            {
+                bits.WriteInteger64(placement.ParentObjectIdentifier, 64);
+            }
+
+            // Position data (conditional)
+            bits.WriteBool(placement.HasPosition);
+            if (!placement.HasPosition)
+                continue;
+
+            // Position: 3 × 16-bit quantized within world bounds
+            bits.WriteQuantizedReal(placement.SpawnCoords.X, 16, WorldBoundsXMin, WorldBoundsXMax, false);
+            bits.WriteQuantizedReal(placement.SpawnCoords.Y, 16, WorldBoundsYMin, WorldBoundsYMax, false);
+            bits.WriteQuantizedReal(placement.SpawnCoords.Z, 16, WorldBoundsZMin, WorldBoundsZMax, false);
+
+            // Axes: convert yaw/pitch/roll to forward/up, then encode
+            var (fi, fj, fk, ui, uj, uk) = OrientationConverter.ToForwardUp(
+                placement.SpawnCoords.Yaw, placement.SpawnCoords.Pitch, placement.SpawnCoords.Roll);
+            OrientationConverter.WriteAxes(bits, fi, fj, fk, ui, uj, uk);
+
+            // Multiplayer game object properties
+            bits.WriteSignedInteger(placement.ObjectType, 8);
+            bits.WriteInteger(placement.SymmetryFlags, 8);
+            bits.WriteInteger(placement.GameEngineFlags, 16);
+            bits.WriteInteger(placement.SpareClips, 8);
+            bits.WriteInteger(placement.RespawnTime, 8);
+            bits.WriteInteger(placement.Team, 8);
+            bits.WriteInteger(placement.BoundaryShape, 8);
+
+            // Boundary data (conditional based on shape)
+            switch (placement.BoundaryShape)
+            {
+                case 1: // sphere
+                    bits.WriteQuantizedReal(placement.BoundarySize, 16, 0f, 60f, false);
+                    bits.WriteQuantizedReal(placement.BoundaryNegativeHeight, 16, 0f, 60f, false);
+                    break;
+                case 2: // cylinder
+                    bits.WriteQuantizedReal(placement.BoundarySize, 16, 0f, 60f, false);
+                    bits.WriteQuantizedReal(placement.BoundaryBoxLength, 16, 0f, 60f, false);
+                    bits.WriteQuantizedReal(placement.BoundaryPositiveHeight, 16, 0f, 60f, false);
+                    break;
+                case 3: // box
+                    bits.WriteQuantizedReal(placement.BoundarySize, 16, 0f, 60f, false);
+                    bits.WriteQuantizedReal(placement.BoundaryBoxLength, 16, 0f, 60f, false);
+                    bits.WriteQuantizedReal(placement.BoundaryPositiveHeight, 16, 0f, 60f, false);
+                    bits.WriteQuantizedReal(placement.BoundaryNegativeHeight, 16, 0f, 60f, false);
+                    break;
+            }
+        }
+
+        // === object_type_start_index[14] ===
+        for (int i = 0; i < 14; i++)
+            bits.WriteInteger((uint)_packedObjectTypeStartIndex[i], 9);
+
+        // === quotas (tag index entries) ===
+        for (int i = 0; i < _packedNumberOfQuotas; i++)
+        {
+            var entry = i < TagIndex.Count ? TagIndex[i] : new TagIndexEntry { Ident = -1 };
+            bits.WriteInteger((uint)entry.Ident, 32);
+            bits.WriteInteger(entry.RunTimeMinimum, 8);
+            bits.WriteInteger(entry.RunTimeMaximum, 8);
+            bits.WriteInteger(entry.CountOnMap, 8);
+            bits.WriteInteger(entry.DesignTimeMaximum, 8);
+            bits.WriteRawFloat(entry.Cost);
+        }
+
+        _payload = bits.ToArray();
         FlushToFile();
     }
 

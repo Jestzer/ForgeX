@@ -321,6 +321,142 @@ public class MccLoadTest
     }
 
     [Fact]
+    public void PackedMvarRoundTripWrite()
+    {
+        // Load a packed mvar, write it back, re-read, verify fields match
+        string path = Path.Combine(MvarDir, "130cadd1-d80b-4992-b760-d9602410b377.mvar");
+        if (!File.Exists(path))
+        {
+            Console.WriteLine("SKIP: Packed .mvar test file not found");
+            return;
+        }
+
+        var tempFile = Path.GetTempFileName() + ".mvar";
+        File.Copy(path, tempFile, true);
+
+        try
+        {
+            // Load original
+            var original = new MccMapVariant(tempFile);
+            var origName = original.VariantName;
+            var origDesc = original.VariantDescription;
+            var origAuthor = original.MapAuthor;
+            var origMapId = original.MapId;
+            var origMaxBudget = original.MaximumBudget;
+            var origCurrentBudget = original.CurrentBudget;
+            int origActivePlacements = original.PlacementChunks.Count(c => c.TagsIndex >= 0);
+            int origActiveTagEntries = original.TagIndex.Count(e => e.Tag != null);
+
+            // Save first active placement's data for comparison
+            var firstPlacement = original.PlacementChunks.First(c => c.TagsIndex >= 0);
+            var origPX = firstPlacement.SpawnCoords.X;
+            var origPY = firstPlacement.SpawnCoords.Y;
+            var origPZ = firstPlacement.SpawnCoords.Z;
+            var origTagsIndex = firstPlacement.TagsIndex;
+
+            // Write it back (re-encodes entire bitstream)
+            original.WriteHeader();
+            original.CloseIO();
+
+            // Re-read
+            var reloaded = new MccMapVariant(tempFile);
+
+            Console.WriteLine($"Original:  '{origName}' MapId={origMapId} Budget={origMaxBudget}/{origCurrentBudget}");
+            Console.WriteLine($"Reloaded:  '{reloaded.VariantName}' MapId={reloaded.MapId} Budget={reloaded.MaximumBudget}/{reloaded.CurrentBudget}");
+
+            Assert.Equal(origName, reloaded.VariantName);
+            Assert.Equal(origDesc, reloaded.VariantDescription);
+            Assert.Equal(origAuthor, reloaded.MapAuthor);
+            Assert.Equal(origMapId, reloaded.MapId);
+            Assert.Equal(origMaxBudget, reloaded.MaximumBudget);
+            Assert.Equal(origCurrentBudget, reloaded.CurrentBudget);
+
+            int reloadedActivePlacements = reloaded.PlacementChunks.Count(c => c.TagsIndex >= 0);
+            int reloadedActiveTagEntries = reloaded.TagIndex.Count(e => e.Tag != null);
+            Console.WriteLine($"Placements: orig={origActivePlacements} reloaded={reloadedActivePlacements}");
+            Console.WriteLine($"Tag Entries: orig={origActiveTagEntries} reloaded={reloadedActiveTagEntries}");
+            Assert.Equal(origActivePlacements, reloadedActivePlacements);
+            Assert.Equal(origActiveTagEntries, reloadedActiveTagEntries);
+
+            // Verify first placement coordinates survived round-trip (within quantization tolerance)
+            var reloadedFirst = reloaded.PlacementChunks.First(c => c.TagsIndex >= 0);
+            Console.WriteLine($"First placement: orig=({origPX:F4},{origPY:F4},{origPZ:F4}) idx={origTagsIndex}");
+            Console.WriteLine($"                 new=({reloadedFirst.SpawnCoords.X:F4},{reloadedFirst.SpawnCoords.Y:F4},{reloadedFirst.SpawnCoords.Z:F4}) idx={reloadedFirst.TagsIndex}");
+            Assert.Equal(origTagsIndex, reloadedFirst.TagsIndex);
+            // 16-bit quantization over world bounds gives ~0.01 precision
+            Assert.InRange(reloadedFirst.SpawnCoords.X, origPX - 0.05f, origPX + 0.05f);
+            Assert.InRange(reloadedFirst.SpawnCoords.Y, origPY - 0.05f, origPY + 0.05f);
+            Assert.InRange(reloadedFirst.SpawnCoords.Z, origPZ - 0.05f, origPZ + 0.05f);
+
+            reloaded.CloseIO();
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
+    public void PackedMvarRoundTripWithCoordinates()
+    {
+        // Use a file with non-trivial placement coordinates
+        string path = Path.Combine(MvarDir, "h3_hardcoreConstruct.mvar");
+        if (!File.Exists(path))
+        {
+            Console.WriteLine("SKIP: Packed .mvar test file not found");
+            return;
+        }
+
+        var tempFile = Path.GetTempFileName() + ".mvar";
+        File.Copy(path, tempFile, true);
+
+        try
+        {
+            var original = new MccMapVariant(tempFile);
+            var origPlacements = original.PlacementChunks
+                .Where(c => c.TagsIndex >= 0 && c.HasPosition)
+                .Select(c => (c.TagsIndex, c.SpawnCoords.X, c.SpawnCoords.Y, c.SpawnCoords.Z))
+                .ToList();
+
+            Console.WriteLine($"Original: '{original.VariantName}' with {origPlacements.Count} positioned placements");
+
+            // Write and re-read
+            original.WriteHeader();
+            original.CloseIO();
+
+            var reloaded = new MccMapVariant(tempFile);
+            var reloadedPlacements = reloaded.PlacementChunks
+                .Where(c => c.TagsIndex >= 0 && c.HasPosition)
+                .Select(c => (c.TagsIndex, c.SpawnCoords.X, c.SpawnCoords.Y, c.SpawnCoords.Z))
+                .ToList();
+
+            Console.WriteLine($"Reloaded: '{reloaded.VariantName}' with {reloadedPlacements.Count} positioned placements");
+            Assert.Equal(origPlacements.Count, reloadedPlacements.Count);
+
+            // Check each placement's coordinates are within quantization tolerance
+            int mismatches = 0;
+            for (int i = 0; i < origPlacements.Count; i++)
+            {
+                var (oti, ox, oy, oz) = origPlacements[i];
+                var (rti, rx, ry, rz) = reloadedPlacements[i];
+                if (oti != rti || MathF.Abs(ox - rx) > 0.1f || MathF.Abs(oy - ry) > 0.1f || MathF.Abs(oz - rz) > 0.1f)
+                {
+                    Console.WriteLine($"  Mismatch [{i}]: orig=({ox:F3},{oy:F3},{oz:F3}) idx={oti} vs new=({rx:F3},{ry:F3},{rz:F3}) idx={rti}");
+                    mismatches++;
+                }
+            }
+            Console.WriteLine($"Coordinate mismatches: {mismatches}/{origPlacements.Count}");
+            Assert.Equal(0, mismatches);
+
+            reloaded.CloseIO();
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
     public void OrientationConverterRoundTrip()
     {
         // Test with known values

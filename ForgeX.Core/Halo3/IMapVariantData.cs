@@ -26,6 +26,8 @@ public interface IMapVariantData
     List<PlacementChunk> PlacementChunks { get; }
     TagDatabase? Tags { get; }
 
+    bool CanWrite { get; }
+
     void WriteHeader();
     void WritePlacement(PlacementChunk chunk);
     void WriteTagIndexEntry(TagIndexEntry entry);

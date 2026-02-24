@@ -14,6 +14,20 @@ public class PlacementChunk
     public byte RespawnTime { get; set; }
     public TagIndexEntry? Entry { get; set; }
 
+    // Packed mvar additional fields (not used by Xbox 360 or unpacked mapv paths)
+    public ushort PackedFlags { get; set; }
+    public bool HasParentObject { get; set; }
+    public ulong ParentObjectIdentifier { get; set; }
+    public bool HasPosition { get; set; } = true;
+    public int ObjectType { get; set; }
+    public byte SymmetryFlags { get; set; }
+    public ushort GameEngineFlags { get; set; }
+    public byte BoundaryShape { get; set; }
+    public float BoundarySize { get; set; }
+    public float BoundaryBoxLength { get; set; }
+    public float BoundaryPositiveHeight { get; set; }
+    public float BoundaryNegativeHeight { get; set; }
+
     // Flag bit accessors (bits 1, 2, 3 from the original UI)
     public bool Flag1
     {

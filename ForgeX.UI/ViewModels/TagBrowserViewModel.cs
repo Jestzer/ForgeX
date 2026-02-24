@@ -27,6 +27,7 @@ public partial class TagBrowserViewModel : ViewModelBase
     [ObservableProperty] private string _designTimeMax = "";
     [ObservableProperty] private string _cost = "";
     [ObservableProperty] private bool _isTagSelected;
+    [ObservableProperty] private bool _canWrite;
 
     // Placement list for selected tag
     [ObservableProperty] private ObservableCollection<string> _placements = new();
@@ -56,6 +57,7 @@ public partial class TagBrowserViewModel : ViewModelBase
     public void Load(IMapVariantData variant)
     {
         _variant = variant;
+        CanWrite = variant.CanWrite;
         TagTree.Clear();
 
         if (variant.Tags == null) return;
@@ -183,7 +185,7 @@ public partial class TagBrowserViewModel : ViewModelBase
     [RelayCommand]
     private void SaveTag()
     {
-        if (SelectedEntry == null || _variant == null) return;
+        if (SelectedEntry == null || _variant == null || !_variant.CanWrite) return;
 
         if (int.TryParse(Ident, out int ident)) SelectedEntry.Ident = ident;
         if (byte.TryParse(RuntimeMin, out byte rtMin)) SelectedEntry.RunTimeMinimum = rtMin;
@@ -204,7 +206,7 @@ public partial class TagBrowserViewModel : ViewModelBase
     [RelayCommand]
     private void SavePlacement()
     {
-        if (SelectedEntry == null || _variant == null || SelectedPlacementIndex < 0) return;
+        if (SelectedEntry == null || _variant == null || !_variant.CanWrite || SelectedPlacementIndex < 0) return;
         if (SelectedPlacementIndex >= SelectedEntry.PlacedItems.Count) return;
 
         var chunk = SelectedEntry.PlacedItems[SelectedPlacementIndex];
@@ -228,9 +230,56 @@ public partial class TagBrowserViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void AddPlacement()
+    {
+        if (SelectedEntry == null || _variant == null || !_variant.CanWrite) return;
+
+        // Find first empty placement slot
+        int slotIndex = -1;
+        for (int i = 0; i < _variant.PlacementChunks.Count; i++)
+        {
+            if (_variant.PlacementChunks[i].TagsIndex == -1)
+            {
+                slotIndex = i;
+                break;
+            }
+        }
+        if (slotIndex == -1) return; // All 640 slots full
+
+        int tagIndex = _variant.TagIndex.IndexOf(SelectedEntry);
+        if (tagIndex < 0) return;
+
+        // Reuse the empty slot (it already has the correct Offset for file writes)
+        var chunk = _variant.PlacementChunks[slotIndex];
+        chunk.ChunkType = ChunkType.Added;
+        chunk.TagsIndex = tagIndex;
+        chunk.SpawnCoords = new SpawnCoords();
+        chunk.Flags = 0;
+        chunk.Team = 0;
+        chunk.SpareClips = 0;
+        chunk.RespawnTime = 0;
+        chunk.Entry = SelectedEntry;
+
+        _variant.WritePlacement(chunk);
+
+        SelectedEntry.PlacedItems.Add(chunk);
+        SelectedEntry.CountOnMap = (byte)SelectedEntry.PlacedItems.Count;
+        _variant.WriteTagIndexEntry(SelectedEntry);
+
+        // Refresh UI
+        Placements.Clear();
+        for (int i = 0; i < SelectedEntry.PlacedItems.Count; i++)
+            Placements.Add($"Placement Chunk: {i}");
+        CountOnMap = SelectedEntry.CountOnMap.ToString();
+
+        // Select the newly added placement
+        SelectedPlacementIndex = SelectedEntry.PlacedItems.Count - 1;
+    }
+
+    [RelayCommand]
     private void DeletePlacement()
     {
-        if (SelectedEntry == null || _variant == null || SelectedPlacementIndex < 0) return;
+        if (SelectedEntry == null || _variant == null || !_variant.CanWrite || SelectedPlacementIndex < 0) return;
         if (SelectedPlacementIndex >= SelectedEntry.PlacedItems.Count) return;
 
         var chunk = SelectedEntry.PlacedItems[SelectedPlacementIndex];

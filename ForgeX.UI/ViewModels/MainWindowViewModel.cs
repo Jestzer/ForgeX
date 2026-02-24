@@ -95,7 +95,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void SaveHeader()
     {
-        if (_variant == null) return;
+        if (_variant == null || !_variant.CanWrite) return;
 
         try
         {

@@ -65,7 +65,9 @@ public class BitWriter
     public void WriteSignedInteger(int value, int bits)
     {
         if (bits == 0) return;
-        WriteInteger(unchecked((uint)value) & ((1u << bits) - 1), bits);
+        // For 32 bits, mask is 0xFFFFFFFF; (1u << 32) wraps in C# so handle it explicitly
+        uint mask = bits >= 32 ? 0xFFFFFFFF : (1u << bits) - 1;
+        WriteInteger(unchecked((uint)value) & mask, bits);
     }
 
     /// <summary>
@@ -94,6 +96,21 @@ public class BitWriter
         normalized = Math.Clamp(normalized, 0f, 1f);
         uint quantized = (uint)Math.Round(normalized * maxVal);
         WriteInteger(quantized, bits);
+    }
+
+    /// <summary>
+    /// Writes a quantized real value matching the Blam engine's quantize_real.
+    /// Inverse of BitReader.ReadQuantizedReal. Supports exact_midpoint mode.
+    /// </summary>
+    public void WriteQuantizedReal(float value, int bits, float min, float max, bool exactMidpoint)
+    {
+        int stepCount = (1 << bits) - 1;
+        if (exactMidpoint)
+            stepCount -= stepCount % 2;
+
+        float normalized = (value - min) / (max - min);
+        int quantized = (int)Math.Clamp(Math.Round(normalized * stepCount), 0, stepCount);
+        WriteInteger((uint)quantized, bits);
     }
 
     /// <summary>

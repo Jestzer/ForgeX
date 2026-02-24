@@ -32,6 +32,7 @@ public class MapVariant : IMapVariantData
     public List<TagIndexEntry> TagIndex { get; set; } = new();
     public List<PlacementChunk> PlacementChunks { get; set; } = new();
     public TagDatabase? Tags { get; set; }
+    public bool CanWrite => true;
 
     private MemoryStream? _sandboxStream;
 
