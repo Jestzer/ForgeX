@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ForgeX.Core.Halo3;
@@ -8,6 +9,27 @@ namespace ForgeX.UI.ViewModels;
 public partial class TagBrowserViewModel : ViewModelBase
 {
     private IMapVariantData? _variant;
+    private bool _isLoadingSelection;
+
+    /// <summary>
+    /// Callback invoked when any edit is made that should mark the file as dirty.
+    /// Set by MainWindowViewModel.
+    /// </summary>
+    public Action? MarkDirty { get; set; }
+
+    // Property names that represent user edits (for dirty tracking)
+    private static readonly HashSet<string> EditProperties = new()
+    {
+        nameof(Ident), nameof(RuntimeMin), nameof(RuntimeMax),
+        nameof(CountOnMap), nameof(DesignTimeMax), nameof(Cost),
+        nameof(SelectedTagClass), nameof(SelectedTagPath),
+        nameof(PlacementTagsIndex),
+        nameof(PlacementX), nameof(PlacementY), nameof(PlacementZ),
+        nameof(PlacementYaw), nameof(PlacementPitch), nameof(PlacementRoll),
+        nameof(PlacementRespawnTime), nameof(PlacementTeam), nameof(PlacementSpareClips),
+        nameof(PlacementFlag1), nameof(PlacementFlag2), nameof(PlacementFlag3),
+        nameof(PlacementChunkType)
+    };
 
     // TreeView data
     [ObservableProperty] private ObservableCollection<TagClassNode> _tagTree = new();
@@ -54,58 +76,78 @@ public partial class TagBrowserViewModel : ViewModelBase
         "Added", "Edited", "null", "Original", "PlayerSpawn", "Reserved"
     };
 
+    public TagBrowserViewModel()
+    {
+        PropertyChanged += OnEditPropertyChanged;
+    }
+
+    private void OnEditPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_isLoadingSelection) return;
+        if (e.PropertyName != null && EditProperties.Contains(e.PropertyName))
+            MarkDirty?.Invoke();
+    }
+
     public void Load(IMapVariantData variant)
     {
-        _variant = variant;
-        CanWrite = variant.CanWrite;
-        TagTree.Clear();
-
-        if (variant.Tags == null) return;
-
-        // Build tree: group tag index entries by class
-        var addedPaths = new HashSet<string>();
-        var classNodes = new Dictionary<string, TagClassNode>();
-
-        for (int i = 0; i < 256; i++)
+        _isLoadingSelection = true;
+        try
         {
-            var entry = variant.TagIndex[i];
-            if (entry.Tag == null) continue;
+            _variant = variant;
+            CanWrite = variant.CanWrite;
+            TagTree.Clear();
 
-            if (!classNodes.TryGetValue(entry.Tag.Class, out var classNode))
-            {
-                classNode = new TagClassNode { ClassName = entry.Tag.Class };
-                classNodes[entry.Tag.Class] = classNode;
-            }
+            if (variant.Tags == null) return;
 
-            string key = $"{entry.Tag.Class}/{entry.Tag.Path}/{entry.Tag.TagsIndex}";
-            if (!addedPaths.Contains(key))
+            // Build tree: group tag index entries by class
+            var addedPaths = new HashSet<string>();
+            var classNodes = new Dictionary<string, TagClassNode>();
+
+            for (int i = 0; i < 256; i++)
             {
-                classNode.Children.Add(new TagClassNode
+                var entry = variant.TagIndex[i];
+                if (entry.Tag == null) continue;
+
+                if (!classNodes.TryGetValue(entry.Tag.Class, out var classNode))
                 {
-                    ClassName = entry.Tag.Path,
-                    IsLeaf = true,
-                    TagPath = entry.Tag.Path,
-                    TagsIndex = entry.Tag.TagsIndex,
-                    TagClass = entry.Tag.Class
-                });
-                addedPaths.Add(key);
+                    classNode = new TagClassNode { ClassName = entry.Tag.Class };
+                    classNodes[entry.Tag.Class] = classNode;
+                }
+
+                string key = $"{entry.Tag.Class}/{entry.Tag.Path}/{entry.Tag.TagsIndex}";
+                if (!addedPaths.Contains(key))
+                {
+                    classNode.Children.Add(new TagClassNode
+                    {
+                        ClassName = entry.Tag.Path,
+                        IsLeaf = true,
+                        TagPath = entry.Tag.Path,
+                        TagsIndex = entry.Tag.TagsIndex,
+                        TagClass = entry.Tag.Class
+                    });
+                    addedPaths.Add(key);
+                }
             }
+
+            // Add root node for map name
+            var root = new TagClassNode
+            {
+                ClassName = variant.Tags.MapName ?? "Map",
+                IsRoot = true
+            };
+            foreach (var cn in classNodes.Values.OrderBy(c => c.ClassName))
+                root.Children.Add(cn);
+            TagTree.Add(root);
+
+            // Load tag class combo box
+            TagClasses.Clear();
+            foreach (var cls in variant.Tags.GetDistinctClasses())
+                TagClasses.Add(cls);
         }
-
-        // Add root node for map name
-        var root = new TagClassNode
+        finally
         {
-            ClassName = variant.Tags.MapName ?? "Map",
-            IsRoot = true
-        };
-        foreach (var cn in classNodes.Values.OrderBy(c => c.ClassName))
-            root.Children.Add(cn);
-        TagTree.Add(root);
-
-        // Load tag class combo box
-        TagClasses.Clear();
-        foreach (var cls in variant.Tags.GetDistinctClasses())
-            TagClasses.Add(cls);
+            _isLoadingSelection = false;
+        }
     }
 
     partial void OnSelectedTagClassChanged(string? value)
@@ -128,64 +170,100 @@ public partial class TagBrowserViewModel : ViewModelBase
 
     public void SelectTagEntry(string tagClass, string tagPath, int tagsIndex)
     {
+        // Apply any pending edits from the previously selected tag/placement
+        ApplyTagEdits();
+        ApplyPlacementEdits();
+
         var entry = _variant?.FindTagIndexEntry(tagClass, tagPath, tagsIndex);
         if (entry == null) return;
 
-        SelectedEntry = entry;
-        IsTagSelected = true;
-
-        Ident = entry.Ident.ToString();
-        RuntimeMin = entry.RunTimeMinimum.ToString();
-        RuntimeMax = entry.RunTimeMaximum.ToString();
-        CountOnMap = entry.CountOnMap.ToString();
-        DesignTimeMax = entry.DesignTimeMaximum.ToString();
-        Cost = entry.Cost.ToString();
-
-        if (entry.Tag != null)
+        _isLoadingSelection = true;
+        try
         {
-            SelectedTagClass = entry.Tag.Class;
-            SelectedTagPath = entry.Tag.Path;
+            SelectedEntry = entry;
+            IsTagSelected = true;
+
+            Ident = entry.Ident.ToString();
+            RuntimeMin = entry.RunTimeMinimum.ToString();
+            RuntimeMax = entry.RunTimeMaximum.ToString();
+            CountOnMap = entry.CountOnMap.ToString();
+            DesignTimeMax = entry.DesignTimeMaximum.ToString();
+            Cost = entry.Cost.ToString();
+
+            if (entry.Tag != null)
+            {
+                SelectedTagClass = entry.Tag.Class;
+                SelectedTagPath = entry.Tag.Path;
+            }
+
+            // Load placements for this tag
+            Placements.Clear();
+            for (int i = 0; i < entry.PlacedItems.Count; i++)
+                Placements.Add($"Placement Chunk: {i}");
+
+            if (Placements.Count > 0)
+                SelectedPlacementIndex = 0;
         }
-
-        // Load placements for this tag
-        Placements.Clear();
-        for (int i = 0; i < entry.PlacedItems.Count; i++)
-            Placements.Add($"Placement Chunk: {i}");
-
-        if (Placements.Count > 0)
-            SelectedPlacementIndex = 0;
+        finally
+        {
+            _isLoadingSelection = false;
+        }
     }
 
-    partial void OnSelectedPlacementIndexChanged(int value)
+    partial void OnSelectedPlacementIndexChanged(int oldValue, int newValue)
     {
-        if (value < 0 || SelectedEntry == null || value >= SelectedEntry.PlacedItems.Count)
+        // Apply edits from the previously selected placement before loading the new one
+        if (!_isLoadingSelection && oldValue >= 0 && SelectedEntry != null &&
+            oldValue < SelectedEntry.PlacedItems.Count)
+        {
+            ApplyPlacementEdits(oldValue);
+        }
+
+        if (newValue < 0 || SelectedEntry == null || newValue >= SelectedEntry.PlacedItems.Count)
         {
             HasSelectedPlacement = false;
             return;
         }
 
-        HasSelectedPlacement = true;
-        var chunk = SelectedEntry.PlacedItems[value];
-        PlacementTagsIndex = chunk.TagsIndex.ToString();
-        PlacementX = chunk.SpawnCoords.X.ToString();
-        PlacementY = chunk.SpawnCoords.Y.ToString();
-        PlacementZ = chunk.SpawnCoords.Z.ToString();
-        PlacementYaw = chunk.SpawnCoords.Yaw.ToString();
-        PlacementPitch = chunk.SpawnCoords.Pitch.ToString();
-        PlacementRoll = chunk.SpawnCoords.Roll.ToString();
-        PlacementRespawnTime = chunk.RespawnTime.ToString();
-        PlacementTeam = chunk.Team.ToString();
-        PlacementSpareClips = chunk.SpareClips.ToString();
-        PlacementFlag1 = chunk.Flag1;
-        PlacementFlag2 = chunk.Flag2;
-        PlacementFlag3 = chunk.Flag3;
-        PlacementChunkType = chunk.ChunkType.ToString();
+        _isLoadingSelection = true;
+        try
+        {
+            HasSelectedPlacement = true;
+            var chunk = SelectedEntry.PlacedItems[newValue];
+            PlacementTagsIndex = chunk.TagsIndex.ToString();
+            PlacementX = chunk.SpawnCoords.X.ToString();
+            PlacementY = chunk.SpawnCoords.Y.ToString();
+            PlacementZ = chunk.SpawnCoords.Z.ToString();
+            PlacementYaw = chunk.SpawnCoords.Yaw.ToString();
+            PlacementPitch = chunk.SpawnCoords.Pitch.ToString();
+            PlacementRoll = chunk.SpawnCoords.Roll.ToString();
+            PlacementRespawnTime = chunk.RespawnTime.ToString();
+            PlacementTeam = chunk.Team.ToString();
+            PlacementSpareClips = chunk.SpareClips.ToString();
+            PlacementFlag1 = chunk.Flag1;
+            PlacementFlag2 = chunk.Flag2;
+            PlacementFlag3 = chunk.Flag3;
+            PlacementChunkType = chunk.ChunkType.ToString();
+        }
+        finally
+        {
+            _isLoadingSelection = false;
+        }
     }
 
-    [RelayCommand]
-    private void SaveTag()
+    /// <summary>
+    /// Applies all pending UI edits to in-memory model objects.
+    /// Called by MainWindowViewModel before SaveAll().
+    /// </summary>
+    public void ApplyAllPendingEdits()
     {
-        if (SelectedEntry == null || _variant == null || !_variant.CanWrite) return;
+        ApplyTagEdits();
+        ApplyPlacementEdits();
+    }
+
+    private void ApplyTagEdits()
+    {
+        if (SelectedEntry == null) return;
 
         if (int.TryParse(Ident, out int ident)) SelectedEntry.Ident = ident;
         if (byte.TryParse(RuntimeMin, out byte rtMin)) SelectedEntry.RunTimeMinimum = rtMin;
@@ -199,17 +277,19 @@ public partial class TagBrowserViewModel : ViewModelBase
             if (SelectedTagPath != null) SelectedEntry.Tag.Path = SelectedTagPath;
             if (SelectedTagClass != null) SelectedEntry.Tag.Class = SelectedTagClass;
         }
-
-        _variant.WriteTagIndexEntry(SelectedEntry);
     }
 
-    [RelayCommand]
-    private void SavePlacement()
+    private void ApplyPlacementEdits()
     {
-        if (SelectedEntry == null || _variant == null || !_variant.CanWrite || SelectedPlacementIndex < 0) return;
-        if (SelectedPlacementIndex >= SelectedEntry.PlacedItems.Count) return;
+        ApplyPlacementEdits(SelectedPlacementIndex);
+    }
 
-        var chunk = SelectedEntry.PlacedItems[SelectedPlacementIndex];
+    private void ApplyPlacementEdits(int placementIndex)
+    {
+        if (SelectedEntry == null || placementIndex < 0) return;
+        if (placementIndex >= SelectedEntry.PlacedItems.Count) return;
+
+        var chunk = SelectedEntry.PlacedItems[placementIndex];
 
         if (int.TryParse(PlacementTagsIndex, out int ti)) chunk.TagsIndex = ti;
         if (float.TryParse(PlacementX, out float x)) chunk.SpawnCoords.X = x;
@@ -225,8 +305,6 @@ public partial class TagBrowserViewModel : ViewModelBase
         chunk.Flag2 = PlacementFlag2;
         chunk.Flag3 = PlacementFlag3;
         chunk.ChunkType = ParseChunkType(PlacementChunkType);
-
-        _variant.WritePlacement(chunk);
     }
 
     [RelayCommand]
@@ -260,20 +338,27 @@ public partial class TagBrowserViewModel : ViewModelBase
         chunk.RespawnTime = 0;
         chunk.Entry = SelectedEntry;
 
-        _variant.WritePlacement(chunk);
-
         SelectedEntry.PlacedItems.Add(chunk);
         SelectedEntry.CountOnMap = (byte)SelectedEntry.PlacedItems.Count;
-        _variant.WriteTagIndexEntry(SelectedEntry);
+
+        MarkDirty?.Invoke();
 
         // Refresh UI
-        Placements.Clear();
-        for (int i = 0; i < SelectedEntry.PlacedItems.Count; i++)
-            Placements.Add($"Placement Chunk: {i}");
-        CountOnMap = SelectedEntry.CountOnMap.ToString();
+        _isLoadingSelection = true;
+        try
+        {
+            Placements.Clear();
+            for (int i = 0; i < SelectedEntry.PlacedItems.Count; i++)
+                Placements.Add($"Placement Chunk: {i}");
+            CountOnMap = SelectedEntry.CountOnMap.ToString();
 
-        // Select the newly added placement
-        SelectedPlacementIndex = SelectedEntry.PlacedItems.Count - 1;
+            // Select the newly added placement
+            SelectedPlacementIndex = SelectedEntry.PlacedItems.Count - 1;
+        }
+        finally
+        {
+            _isLoadingSelection = false;
+        }
     }
 
     [RelayCommand]
@@ -284,17 +369,25 @@ public partial class TagBrowserViewModel : ViewModelBase
 
         var chunk = SelectedEntry.PlacedItems[SelectedPlacementIndex];
         chunk.TagsIndex = -1;
-        _variant.WritePlacement(chunk);
 
         SelectedEntry.PlacedItems.RemoveAt(SelectedPlacementIndex);
         SelectedEntry.CountOnMap = (byte)SelectedEntry.PlacedItems.Count;
-        _variant.WriteTagIndexEntry(SelectedEntry);
+
+        MarkDirty?.Invoke();
 
         // Refresh
-        Placements.Clear();
-        for (int i = 0; i < SelectedEntry.PlacedItems.Count; i++)
-            Placements.Add($"Placement Chunk: {i}");
-        CountOnMap = SelectedEntry.CountOnMap.ToString();
+        _isLoadingSelection = true;
+        try
+        {
+            Placements.Clear();
+            for (int i = 0; i < SelectedEntry.PlacedItems.Count; i++)
+                Placements.Add($"Placement Chunk: {i}");
+            CountOnMap = SelectedEntry.CountOnMap.ToString();
+        }
+        finally
+        {
+            _isLoadingSelection = false;
+        }
     }
 
     private static ChunkType ParseChunkType(string text) => text switch

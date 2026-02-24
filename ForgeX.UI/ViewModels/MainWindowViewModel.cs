@@ -17,6 +17,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private string _windowTitle = "ForgeX - Halo 3 Forge Usermap Editor";
     [ObservableProperty] private bool _isXbox360Format;
     [ObservableProperty] private ObservableCollection<RecentFileItem> _recentFiles = new();
+    [ObservableProperty] private bool _hasUnsavedChanges;
 
     private StfsContainer? _container;
     private IMapVariantData? _variant;
@@ -27,13 +28,37 @@ public partial class MainWindowViewModel : ViewModelBase
     /// </summary>
     public Action<string, string>? ShowError { get; set; }
 
+    /// <summary>
+    /// Set by the View to show a confirmation dialog.
+    /// Returns true (Save), false (Discard), or null (Cancel).
+    /// </summary>
+    public Func<string, string, Task<bool?>>? ShowConfirmDialog { get; set; }
+
     public MainWindowViewModel()
     {
         LoadRecentFiles();
     }
 
-    public void OpenFile(string filePath)
+    partial void OnHasUnsavedChangesChanged(bool value)
     {
+        UpdateWindowTitle();
+    }
+
+    private void UpdateWindowTitle()
+    {
+        if (_variant == null)
+        {
+            WindowTitle = "ForgeX - Halo 3 Forge Usermap Editor";
+            return;
+        }
+        string dirty = HasUnsavedChanges ? " *" : "";
+        WindowTitle = $"ForgeX - {_variant.VariantName} ({MapHeader.MapName}){dirty}";
+    }
+
+    public async Task OpenFileAsync(string filePath)
+    {
+        if (!await ConfirmDiscardChanges()) return;
+
         try
         {
             // Close any existing file
@@ -75,7 +100,17 @@ public partial class MainWindowViewModel : ViewModelBase
             StatusMessage = $"Loaded ({formatLabel}): {Path.GetFileName(filePath)}";
             if (_variant is MccMapVariant mcc && mcc.DecompressedPath != null)
                 StatusMessage += $" — Decompressed copy: {Path.GetFileName(mcc.DecompressedPath)}";
-            WindowTitle = $"ForgeX - {_variant.VariantName} ({MapHeader.MapName})";
+
+            HasUnsavedChanges = false;
+
+            // Wire dirty tracking after loading (so initial loads don't mark dirty)
+            TagBrowser.MarkDirty = () => HasUnsavedChanges = true;
+            MapHeader.PropertyChanged += (_, _) =>
+            {
+                if (IsFileLoaded) HasUnsavedChanges = true;
+            };
+
+            UpdateWindowTitle();
 
             // Add to recent files
             RecentFilesService.Add(filePath);
@@ -90,30 +125,38 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void OpenRecentFile(string filePath)
+    private async Task OpenRecentFile(string filePath)
     {
         if (File.Exists(filePath))
-            OpenFile(filePath);
+            await OpenFileAsync(filePath);
         else
             StatusMessage = $"File not found: {Path.GetFileName(filePath)}";
     }
 
     [RelayCommand]
-    private void SaveHeader()
+    private void Save()
     {
         if (_variant == null || !_variant.CanWrite) return;
 
         try
         {
+            // Apply header edits from MapHeaderViewModel to IMapVariantData
             MapHeader.SaveTo(_variant);
-            _variant.WriteHeader();
-            StatusMessage = "Header saved.";
-            WindowTitle = $"ForgeX - {_variant.VariantName} ({MapHeader.MapName})";
+
+            // Apply any pending tag/placement edits from UI fields to in-memory model
+            TagBrowser.ApplyAllPendingEdits();
+
+            // Write everything to disk in one operation
+            _variant.SaveAll();
+
+            HasUnsavedChanges = false;
+            StatusMessage = "File saved.";
+            UpdateWindowTitle();
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Error saving header: {ex.Message}";
-            ShowError?.Invoke("Error Saving Header", ex.Message);
+            StatusMessage = $"Error saving: {ex.Message}";
+            ShowError?.Invoke("Error Saving File", ex.Message);
         }
     }
 
@@ -135,11 +178,30 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void CloseFile()
+    private async Task CloseFile()
     {
+        if (!await ConfirmDiscardChanges()) return;
+
         CloseCurrentFile();
         StatusMessage = "File closed.";
         WindowTitle = "ForgeX - Halo 3 Forge Usermap Editor";
+    }
+
+    /// <summary>
+    /// Returns true if it is safe to proceed (no unsaved changes, or user chose to save/discard).
+    /// Returns false if the user cancelled.
+    /// </summary>
+    public async Task<bool> ConfirmDiscardChanges()
+    {
+        if (!HasUnsavedChanges) return true;
+        if (ShowConfirmDialog == null) return true;
+
+        var result = await ShowConfirmDialog("Unsaved Changes",
+            "You have unsaved changes. Do you want to save before continuing?");
+
+        if (result == null) return false; // Cancel
+        if (result == true) Save();       // Save, then proceed
+        return true;                      // Discard or saved — proceed
     }
 
     private void CloseCurrentFile()
@@ -153,6 +215,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _currentFilePath = null;
         IsFileLoaded = false;
         IsXbox360Format = false;
+        HasUnsavedChanges = false;
         MapHeader = new MapHeaderViewModel();
         TagBrowser = new TagBrowserViewModel();
     }

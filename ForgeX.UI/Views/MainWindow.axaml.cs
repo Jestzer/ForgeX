@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
@@ -18,9 +19,110 @@ public partial class MainWindow : Window
             if (DataContext is MainWindowViewModel vm)
             {
                 vm.ShowError = ShowErrorDialog;
+                vm.ShowConfirmDialog = ShowConfirmDialogAsync;
                 RefreshRecentFilesMenu();
             }
         };
+
+        Closing += OnWindowClosing;
+    }
+
+    private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm) return;
+        if (!vm.HasUnsavedChanges) return;
+
+        // Cancel the close, show the dialog, then re-close if confirmed
+        e.Cancel = true;
+
+        if (await vm.ConfirmDiscardChanges())
+        {
+            // Detach handler to prevent re-entry, then close
+            Closing -= OnWindowClosing;
+            Close();
+        }
+    }
+
+    private async Task<bool?> ShowConfirmDialogAsync(string title, string message)
+    {
+        var tcs = new TaskCompletionSource<bool?>();
+
+        var dialog = new Window
+        {
+            Title = title,
+            Width = 420,
+            Height = 180,
+            CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Background = new SolidColorBrush(Color.FromRgb(45, 43, 43))
+        };
+
+        var panel = new StackPanel
+        {
+            Margin = new Avalonia.Thickness(20),
+            Spacing = 16
+        };
+
+        panel.Children.Add(new TextBlock
+        {
+            Text = message,
+            Foreground = Brushes.White,
+            TextWrapping = TextWrapping.Wrap,
+            TextAlignment = Avalonia.Media.TextAlignment.Center,
+            FontSize = 14
+        });
+
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Spacing = 12
+        };
+
+        var saveBtn = new Button
+        {
+            Content = "Save",
+            Padding = new Avalonia.Thickness(24, 6),
+            Background = new SolidColorBrush(Color.FromRgb(70, 70, 70)),
+            Foreground = Brushes.White,
+            BorderBrush = new SolidColorBrush(Color.FromRgb(30, 105, 155)),
+            BorderThickness = new Avalonia.Thickness(2)
+        };
+        saveBtn.Click += (_, _) => { tcs.TrySetResult(true); dialog.Close(); };
+
+        var discardBtn = new Button
+        {
+            Content = "Discard",
+            Padding = new Avalonia.Thickness(24, 6),
+            Background = new SolidColorBrush(Color.FromRgb(90, 45, 45)),
+            Foreground = Brushes.White,
+            BorderBrush = new SolidColorBrush(Color.FromRgb(139, 0, 0)),
+            BorderThickness = new Avalonia.Thickness(2)
+        };
+        discardBtn.Click += (_, _) => { tcs.TrySetResult(false); dialog.Close(); };
+
+        var cancelBtn = new Button
+        {
+            Content = "Cancel",
+            Padding = new Avalonia.Thickness(24, 6),
+            Background = new SolidColorBrush(Color.FromRgb(70, 70, 70)),
+            Foreground = Brushes.White,
+            BorderBrush = new SolidColorBrush(Color.FromRgb(100, 100, 100)),
+            BorderThickness = new Avalonia.Thickness(2)
+        };
+        cancelBtn.Click += (_, _) => { tcs.TrySetResult(null); dialog.Close(); };
+
+        // Handle dialog closed via X button as Cancel
+        dialog.Closed += (_, _) => tcs.TrySetResult(null);
+
+        buttons.Children.Add(saveBtn);
+        buttons.Children.Add(discardBtn);
+        buttons.Children.Add(cancelBtn);
+        panel.Children.Add(buttons);
+        dialog.Content = panel;
+
+        await dialog.ShowDialog(this);
+        return await tcs.Task;
     }
 
     private async void ShowErrorDialog(string title, string message)
@@ -91,7 +193,7 @@ public partial class MainWindow : Window
             var path = files[0].TryGetLocalPath();
             if (path != null && DataContext is MainWindowViewModel vm)
             {
-                vm.OpenFile(path);
+                await vm.OpenFileAsync(path);
                 RefreshRecentFilesMenu();
             }
         }

@@ -129,6 +129,37 @@ public class MapVariant : IMapVariantData
 
     public void WriteHeader()
     {
+        WriteHeaderToStream();
+        FlushToContainer();
+    }
+
+    public void WritePlacement(PlacementChunk chunk)
+    {
+        chunk.Write(Writer);
+        FlushToContainer();
+    }
+
+    public void WriteTagIndexEntry(TagIndexEntry entry)
+    {
+        entry.Write(Writer);
+        FlushToContainer();
+    }
+
+    public void SaveAll()
+    {
+        WriteHeaderToStream();
+
+        foreach (var chunk in PlacementChunks)
+            chunk.Write(Writer);
+
+        foreach (var entry in TagIndex)
+            entry.Write(Writer);
+
+        FlushToContainer();
+    }
+
+    private void WriteHeaderToStream()
+    {
         // Write at both header locations (offsets 72 and 336)
         Writer.BaseStream.Position = 72;
         Writer.WriteUnicode(VariantName, 16);
@@ -147,20 +178,6 @@ public class MapVariant : IMapVariantData
         Writer.BaseStream.Position = 616;
         Writer.WriteFloat(MaximumBudget);
         Writer.WriteFloat(CurrentBudget);
-
-        FlushToContainer();
-    }
-
-    public void WritePlacement(PlacementChunk chunk)
-    {
-        chunk.Write(Writer);
-        FlushToContainer();
-    }
-
-    public void WriteTagIndexEntry(TagIndexEntry entry)
-    {
-        entry.Write(Writer);
-        FlushToContainer();
     }
 
     private void FlushToContainer()

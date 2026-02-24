@@ -466,31 +466,9 @@ public class MccMapVariant : IMapVariantData
             return;
         }
 
-        WriteHeaderUnpacked();
-    }
-
-    private void WriteHeaderUnpacked()
-    {
         using var ms = new MemoryStream(_payload);
         var writer = new EndianWriter(ms, EndianType.BigEndian);
-
-        // Write name
-        writer.BaseStream.Position = OffsetName;
-        WriteUnicodeBE(writer, VariantName, 16);
-
-        // Write description
-        writer.BaseStream.Position = OffsetDesc;
-        WriteAsciiBE(writer, VariantDescription, 128);
-
-        // Write author
-        writer.BaseStream.Position = OffsetAuthor;
-        WriteAsciiBE(writer, MapAuthor, 16);
-
-        // Write budgets
-        writer.BaseStream.Position = OffsetMaxBudget;
-        writer.Write(BitConverter.GetBytes(MaximumBudget).Reverse().ToArray());
-        writer.Write(BitConverter.GetBytes(CurrentBudget).Reverse().ToArray());
-
+        WriteHeaderToPayload(writer);
         FlushToFile();
     }
 
@@ -504,7 +482,64 @@ public class MccMapVariant : IMapVariantData
 
         using var ms = new MemoryStream(_payload);
         var writer = new EndianWriter(ms, EndianType.BigEndian);
+        WritePlacementToPayload(writer, chunk);
+        FlushToFile();
+    }
 
+    public void WriteTagIndexEntry(TagIndexEntry entry)
+    {
+        if (_blfFile.VariantFormat == BlfVariantFormat.PackedMvar)
+        {
+            WritePacked();
+            return;
+        }
+
+        using var ms = new MemoryStream(_payload);
+        var writer = new EndianWriter(ms, EndianType.BigEndian);
+        WriteTagEntryToPayload(writer, entry, TagIndex.IndexOf(entry));
+        FlushToFile();
+    }
+
+    public void SaveAll()
+    {
+        if (_blfFile.VariantFormat == BlfVariantFormat.PackedMvar)
+        {
+            WritePacked();
+            return;
+        }
+
+        using var ms = new MemoryStream(_payload);
+        var writer = new EndianWriter(ms, EndianType.BigEndian);
+
+        WriteHeaderToPayload(writer);
+
+        for (int i = 0; i < PlacementChunks.Count && i < PlacementCount; i++)
+            WritePlacementToPayload(writer, PlacementChunks[i]);
+
+        for (int i = 0; i < TagIndex.Count && i < TagIndexCount; i++)
+            WriteTagEntryToPayload(writer, TagIndex[i], i);
+
+        FlushToFile();
+    }
+
+    private void WriteHeaderToPayload(EndianWriter writer)
+    {
+        writer.BaseStream.Position = OffsetName;
+        WriteUnicodeBE(writer, VariantName, 16);
+
+        writer.BaseStream.Position = OffsetDesc;
+        WriteAsciiBE(writer, VariantDescription, 128);
+
+        writer.BaseStream.Position = OffsetAuthor;
+        WriteAsciiBE(writer, MapAuthor, 16);
+
+        writer.BaseStream.Position = OffsetMaxBudget;
+        writer.Write(BitConverter.GetBytes(MaximumBudget).Reverse().ToArray());
+        writer.Write(BitConverter.GetBytes(CurrentBudget).Reverse().ToArray());
+    }
+
+    private static void WritePlacementToPayload(EndianWriter writer, PlacementChunk chunk)
+    {
         writer.BaseStream.Position = chunk.Offset;
 
         // ChunkType
@@ -547,23 +582,11 @@ public class MccMapVariant : IMapVariantData
         writer.Write(chunk.Team);
         writer.Write(chunk.SpareClips);
         writer.Write(chunk.RespawnTime);
-
-        FlushToFile();
     }
 
-    public void WriteTagIndexEntry(TagIndexEntry entry)
+    private static void WriteTagEntryToPayload(EndianWriter writer, TagIndexEntry entry, int index)
     {
-        if (_blfFile.VariantFormat == BlfVariantFormat.PackedMvar)
-        {
-            WritePacked();
-            return;
-        }
-
-        int offset = OffsetTagIndex + TagIndex.IndexOf(entry) * TagIndexEntrySize;
-
-        using var ms = new MemoryStream(_payload);
-        var writer = new EndianWriter(ms, EndianType.BigEndian);
-
+        int offset = OffsetTagIndex + index * TagIndexEntrySize;
         writer.BaseStream.Position = offset;
 
         // Ident (big-endian)
@@ -578,8 +601,6 @@ public class MccMapVariant : IMapVariantData
 
         // Cost (big-endian float)
         WriteBEFloat(writer, entry.Cost);
-
-        FlushToFile();
     }
 
     private void WritePacked()

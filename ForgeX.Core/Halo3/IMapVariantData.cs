@@ -31,6 +31,7 @@ public interface IMapVariantData
     void WriteHeader();
     void WritePlacement(PlacementChunk chunk);
     void WriteTagIndexEntry(TagIndexEntry entry);
+    void SaveAll();
     TagIndexEntry? FindTagIndexEntry(string tagClass, string tagPath, int tagsIndex);
     void CloseIO();
 }
