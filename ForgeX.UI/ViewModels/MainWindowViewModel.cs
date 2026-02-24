@@ -34,6 +34,11 @@ public partial class MainWindowViewModel : ViewModelBase
     /// </summary>
     public Func<string, string, Task<bool?>>? ShowConfirmDialog { get; set; }
 
+    /// <summary>
+    /// Set by the View to show the About dialog.
+    /// </summary>
+    public Action? ShowAboutDialog { get; set; }
+
     public MainWindowViewModel()
     {
         LoadRecentFiles();
@@ -158,6 +163,12 @@ public partial class MainWindowViewModel : ViewModelBase
             StatusMessage = $"Error saving: {ex.Message}";
             ShowError?.Invoke("Error Saving File", ex.Message);
         }
+    }
+
+    [RelayCommand]
+    private void ShowAbout()
+    {
+        ShowAboutDialog?.Invoke();
     }
 
     [RelayCommand]

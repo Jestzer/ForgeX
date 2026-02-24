@@ -21,12 +21,80 @@
                 <Separator />
                 <MenuItem Header="_Close" Command="{Binding CloseFileCommand}" />
             </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem Header="_About" Command="{Binding ShowAboutCommand}" />
+            </MenuItem>
         </Menu>
 
         <!-- Status Bar -->
         <Border DockPanel.Dock="Bottom" Background="#FF1E1E1E" Padding="8,4">
             <TextBlock Text="{Binding StatusMessage}" Foreground="#FFAAAAAA" FontSize="12" />
         </Border>
+
+        <!-- Content area (fills remaining DockPanel space) -->
+        <Panel>
+
+        <!-- Landing Page (shown when no file is loaded) -->
+        <StackPanel IsVisible="{Binding !IsFileLoaded}"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Spacing="24" MaxWidth="700">
+            <!-- Title -->
+            <StackPanel HorizontalAlignment="Center" Spacing="4">
+                <TextBlock Text="ForgeX" FontSize="42" FontWeight="Bold" Foreground="White"
+                           HorizontalAlignment="Center" />
+                <TextBlock Text="Halo 3 Forge Usermap Editor" FontSize="16" Foreground="#FFAAAAAA"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+
+            <!-- Open File Button -->
+            <Button Content="Open File..." Click="OnOpenFileClick"
+                    HorizontalAlignment="Center"
+                    FontSize="16" Padding="32,12"
+                    Background="#FF464646" Foreground="White"
+                    BorderBrush="#FF1E699B" BorderThickness="2"
+                    CornerRadius="6" />
+
+            <!-- Recent Files -->
+            <Border Background="#FF3A3838" BorderBrush="#FF1E699B" BorderThickness="2"
+                    CornerRadius="6" Padding="16" MinHeight="100">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Recent Files" FontWeight="Bold" Foreground="White" FontSize="14" />
+
+                    <!-- No recent files placeholder -->
+                    <TextBlock Text="(No recent files)" Foreground="#FF888888" FontSize="13"
+                               IsVisible="{Binding !RecentFiles.Count}" />
+
+                    <!-- Recent files list -->
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding RecentFiles}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:RecentFileItem">
+                                    <Button Click="OnLandingRecentFileClick" Tag="{Binding FilePath}"
+                                            ToolTip.Tip="{Binding FilePath}"
+                                            Background="Transparent" Foreground="#FF88BBDD"
+                                            BorderThickness="0" Padding="4,3" Cursor="Hand"
+                                            HorizontalContentAlignment="Left" HorizontalAlignment="Stretch">
+                                        <TextBlock Text="{Binding FilePath}" TextWrapping="NoWrap" />
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
+
+            <!-- About Button -->
+            <Button Content="About" Command="{Binding ShowAboutCommand}"
+                    HorizontalAlignment="Center"
+                    FontSize="13" Padding="20,6"
+                    Background="#FF464646" Foreground="#FFAAAAAA"
+                    BorderBrush="#FF555555" BorderThickness="1"
+                    CornerRadius="4" />
+        </StackPanel>
+
+        <!-- Editor (shown when file is loaded) -->
+        <DockPanel IsVisible="{Binding IsFileLoaded}">
 
         <!-- Map Header (compact, docked top) -->
         <Border DockPanel.Dock="Top" Background="#FF3A3838" BorderBrush="#FF1E699B" BorderThickness="2"
@@ -199,5 +267,8 @@
                 </Border>
             </DockPanel>
         </Grid>
+
+        </DockPanel> <!-- Editor -->
+        </Panel> <!-- Content area -->
     </DockPanel>
 </Window>

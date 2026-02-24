@@ -20,6 +20,7 @@ public partial class MainWindow : Window
             {
                 vm.ShowError = ShowErrorDialog;
                 vm.ShowConfirmDialog = ShowConfirmDialogAsync;
+                vm.ShowAboutDialog = ShowAboutDialogWindow;
                 RefreshRecentFilesMenu();
             }
         };
@@ -227,6 +228,98 @@ public partial class MainWindow : Window
             // Close the entire File menu so the user sees the main window immediately
             FileMenu.Close();
             vm.OpenRecentFileCommand.Execute(filePath);
+            RefreshRecentFilesMenu();
+        }
+    }
+
+    private async void ShowAboutDialogWindow()
+    {
+        var dialog = new Window
+        {
+            Title = "About ForgeX",
+            Width = 380,
+            Height = 260,
+            CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Background = new SolidColorBrush(Color.FromRgb(45, 43, 43))
+        };
+
+        var panel = new DockPanel
+        {
+            Margin = new Avalonia.Thickness(24)
+        };
+
+        var button = new Button
+        {
+            Content = "OK",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Padding = new Avalonia.Thickness(24, 6),
+            Background = new SolidColorBrush(Color.FromRgb(70, 70, 70)),
+            Foreground = Brushes.White,
+            BorderBrush = new SolidColorBrush(Color.FromRgb(30, 105, 155)),
+            BorderThickness = new Avalonia.Thickness(2)
+        };
+        button.Click += (_, _) => dialog.Close();
+        DockPanel.SetDock(button, Dock.Bottom);
+        panel.Children.Add(button);
+
+        var content = new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Spacing = 8
+        };
+
+        content.Children.Add(new TextBlock
+        {
+            Text = "ForgeX",
+            FontSize = 28,
+            FontWeight = Avalonia.Media.FontWeight.Bold,
+            Foreground = Brushes.White,
+            HorizontalAlignment = HorizontalAlignment.Center
+        });
+        content.Children.Add(new TextBlock
+        {
+            Text = "Halo 3 Forge Usermap Editor",
+            FontSize = 14,
+            Foreground = new SolidColorBrush(Color.FromRgb(170, 170, 170)),
+            HorizontalAlignment = HorizontalAlignment.Center
+        });
+        content.Children.Add(new TextBlock
+        {
+            Text = "Created by Jestzer",
+            FontSize = 13,
+            Foreground = Brushes.White,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Avalonia.Thickness(0, 8, 0, 0)
+        });
+        content.Children.Add(new TextBlock
+        {
+            Text = "Based on Forge by Supermodder911",
+            FontSize = 13,
+            Foreground = Brushes.White,
+            HorizontalAlignment = HorizontalAlignment.Center
+        });
+        content.Children.Add(new TextBlock
+        {
+            Text = "Special thanks to Lord Zedd and\nthe contributors of Assembly",
+            FontSize = 12,
+            Foreground = new SolidColorBrush(Color.FromRgb(170, 170, 170)),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            TextAlignment = Avalonia.Media.TextAlignment.Center,
+            Margin = new Avalonia.Thickness(0, 4, 0, 0)
+        });
+
+        panel.Children.Add(content);
+        dialog.Content = panel;
+        await dialog.ShowDialog(this);
+    }
+
+    private async void OnLandingRecentFileClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string filePath && DataContext is MainWindowViewModel vm)
+        {
+            await vm.OpenFileAsync(filePath);
             RefreshRecentFilesMenu();
         }
     }
