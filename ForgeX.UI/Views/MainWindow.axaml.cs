@@ -58,20 +58,10 @@ public partial class MainWindow : Window
             Background = new SolidColorBrush(Color.FromRgb(45, 43, 43))
         };
 
-        var panel = new StackPanel
+        var panel = new DockPanel
         {
-            Margin = new Avalonia.Thickness(20),
-            Spacing = 16
+            Margin = new Avalonia.Thickness(20)
         };
-
-        panel.Children.Add(new TextBlock
-        {
-            Text = message,
-            Foreground = Brushes.White,
-            TextWrapping = TextWrapping.Wrap,
-            TextAlignment = Avalonia.Media.TextAlignment.Center,
-            FontSize = 14
-        });
 
         var buttons = new StackPanel
         {
@@ -79,6 +69,7 @@ public partial class MainWindow : Window
             HorizontalAlignment = HorizontalAlignment.Center,
             Spacing = 12
         };
+        DockPanel.SetDock(buttons, Dock.Bottom);
 
         var saveBtn = new Button
         {
@@ -120,6 +111,18 @@ public partial class MainWindow : Window
         buttons.Children.Add(discardBtn);
         buttons.Children.Add(cancelBtn);
         panel.Children.Add(buttons);
+
+        panel.Children.Add(new TextBlock
+        {
+            Text = message,
+            Foreground = Brushes.White,
+            TextWrapping = TextWrapping.Wrap,
+            TextAlignment = Avalonia.Media.TextAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            FontSize = 14
+        });
+
         dialog.Content = panel;
 
         await dialog.ShowDialog(this);
