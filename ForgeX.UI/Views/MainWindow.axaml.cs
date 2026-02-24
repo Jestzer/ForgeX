@@ -1,5 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using ForgeX.UI.ViewModels;
 
@@ -10,7 +12,61 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        RefreshRecentFilesMenu();
+
+        DataContextChanged += (_, _) =>
+        {
+            if (DataContext is MainWindowViewModel vm)
+            {
+                vm.ShowError = ShowErrorDialog;
+                RefreshRecentFilesMenu();
+            }
+        };
+    }
+
+    private async void ShowErrorDialog(string title, string message)
+    {
+        var dialog = new Window
+        {
+            Title = title,
+            Width = 420,
+            Height = 200,
+            CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Background = new SolidColorBrush(Color.FromRgb(45, 43, 43))
+        };
+
+        var panel = new DockPanel
+        {
+            Margin = new Avalonia.Thickness(20)
+        };
+
+        var button = new Button
+        {
+            Content = "OK",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Padding = new Avalonia.Thickness(24, 6),
+            Background = new SolidColorBrush(Color.FromRgb(70, 70, 70)),
+            Foreground = Brushes.White,
+            BorderBrush = new SolidColorBrush(Color.FromRgb(30, 105, 155)),
+            BorderThickness = new Avalonia.Thickness(2)
+        };
+        button.Click += (_, _) => dialog.Close();
+        DockPanel.SetDock(button, Dock.Bottom);
+        panel.Children.Add(button);
+
+        panel.Children.Add(new TextBlock
+        {
+            Text = message,
+            Foreground = Brushes.White,
+            TextWrapping = TextWrapping.Wrap,
+            TextAlignment = Avalonia.Media.TextAlignment.Center,
+            FontSize = 14,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+
+        dialog.Content = panel;
+        await dialog.ShowDialog(this);
     }
 
     private async void OnOpenFileClick(object? sender, RoutedEventArgs e)
@@ -66,6 +122,8 @@ public partial class MainWindow : Window
     {
         if (sender is MenuItem item && item.Tag is string filePath && DataContext is MainWindowViewModel vm)
         {
+            // Close the entire File menu so the user sees the main window immediately
+            FileMenu.Close();
             vm.OpenRecentFileCommand.Execute(filePath);
             RefreshRecentFilesMenu();
         }

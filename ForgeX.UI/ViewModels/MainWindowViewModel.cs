@@ -22,6 +22,11 @@ public partial class MainWindowViewModel : ViewModelBase
     private IMapVariantData? _variant;
     private string? _currentFilePath;
 
+    /// <summary>
+    /// Set by the View to show error dialogs. Parameters: title, message.
+    /// </summary>
+    public Action<string, string>? ShowError { get; set; }
+
     public MainWindowViewModel()
     {
         LoadRecentFiles();
@@ -80,6 +85,7 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             StatusMessage = $"Error: {ex.Message}";
             IsFileLoaded = false;
+            ShowError?.Invoke("Error Opening File", ex.Message);
         }
     }
 
@@ -107,6 +113,7 @@ public partial class MainWindowViewModel : ViewModelBase
         catch (Exception ex)
         {
             StatusMessage = $"Error saving header: {ex.Message}";
+            ShowError?.Invoke("Error Saving Header", ex.Message);
         }
     }
 
@@ -123,6 +130,7 @@ public partial class MainWindowViewModel : ViewModelBase
         catch (Exception ex)
         {
             StatusMessage = $"Error re-signing: {ex.Message}";
+            ShowError?.Invoke("Error Re-signing Container", ex.Message);
         }
     }
 
