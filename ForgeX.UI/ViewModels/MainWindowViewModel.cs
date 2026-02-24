@@ -23,6 +23,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private StfsContainer? _container;
     private IMapVariantData? _variant;
     private string? _currentFilePath;
+    private string? _reachStfsTempPath; // Temp BLF file for Reach Xbox 360 STFS containers
 
     /// <summary>
     /// Set by the View to show error dialogs. Parameters: title, message.
@@ -83,7 +84,30 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 // Xbox 360 STFS container
                 _container = new StfsContainer(filePath);
-                _variant = new MapVariant(_container);
+
+                var sandboxEntry = _container.GetEntryByFileName("sandbox.map")
+                    ?? throw new InvalidDataException("Container does not contain a sandbox.map file.");
+                var sandboxData = sandboxEntry.GetData();
+
+                // Detect Reach vs H3 by checking if sandbox.map is a BLF file
+                bool isReachBlf = sandboxData.Length >= 4 &&
+                    sandboxData[0] == 0x5F && sandboxData[1] == 0x62 &&
+                    sandboxData[2] == 0x6C && sandboxData[3] == 0x66; // "_blf"
+
+                if (isReachBlf)
+                {
+                    // Reach Xbox 360: sandbox.map is a BLF file with packed mvar bitstream
+                    _reachStfsTempPath = Path.GetTempFileName() + ".mvar";
+                    File.WriteAllBytes(_reachStfsTempPath, sandboxData);
+                    var blf = new BlfFile(_reachStfsTempPath);
+                    _variant = new MccReachMapVariant(blf);
+                }
+                else
+                {
+                    // Halo 3 Xbox 360: sandbox.map is raw binary structs
+                    _variant = new MapVariant(_container);
+                }
+
                 IsXbox360Format = true;
             }
             else if (magicStr == "_blf")
@@ -107,7 +131,9 @@ public partial class MainWindowViewModel : ViewModelBase
             TagBrowser.Load(_variant);
 
             IsFileLoaded = true;
-            string formatLabel = IsXbox360Format ? "Xbox 360" : _variant is MccReachMapVariant ? "MCC Reach" : "MCC";
+            string formatLabel = IsXbox360Format
+                ? (_variant is MccReachMapVariant ? "Xbox 360 Reach" : "Xbox 360")
+                : _variant is MccReachMapVariant ? "MCC Reach" : "MCC";
             StatusMessage = $"Loaded ({formatLabel}): {Path.GetFileName(filePath)}";
             if (_variant is MccMapVariant mcc && mcc.DecompressedPath != null)
                 StatusMessage += $" — Decompressed copy: {Path.GetFileName(mcc.DecompressedPath)}";
@@ -159,6 +185,14 @@ public partial class MainWindowViewModel : ViewModelBase
 
             // Write everything to disk in one operation
             _variant.SaveAll();
+
+            // For Reach Xbox 360: flush the updated BLF temp file back to the STFS container
+            if (_container != null && _reachStfsTempPath != null)
+            {
+                var sandboxEntry = _container.GetEntryByFileName("sandbox.map");
+                if (sandboxEntry != null)
+                    sandboxEntry.WriteData(File.ReadAllBytes(_reachStfsTempPath));
+            }
 
             // Re-sign Xbox 360 STFS containers after saving
             if (_container != null)
@@ -219,6 +253,11 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         _container = null;
         _currentFilePath = null;
+        if (_reachStfsTempPath != null)
+        {
+            try { File.Delete(_reachStfsTempPath); } catch { }
+            _reachStfsTempPath = null;
+        }
         IsFileLoaded = false;
         IsXbox360Format = false;
         HasUnsavedChanges = false;
