@@ -75,7 +75,7 @@
                                             Background="Transparent" Foreground="#FF88BBDD"
                                             BorderThickness="0" Padding="4,3" Cursor="Hand"
                                             HorizontalContentAlignment="Left" HorizontalAlignment="Stretch">
-                                        <TextBlock Text="{Binding FilePath}" TextWrapping="NoWrap" />
+                                        <TextBlock Text="{Binding DisplayName}" TextWrapping="NoWrap" />
                                     </Button>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -119,13 +119,13 @@
                         Padding="12,4" VerticalAlignment="Center" />
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Description:" Foreground="White" VerticalAlignment="Center" Margin="0,4,6,0" />
-                <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4" Text="{Binding MapHeader.Description}" Margin="0,4,0,0" />
+                <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4" Text="{Binding MapHeader.Description}" TextWrapping="Wrap" AcceptsReturn="True" MaxHeight="80" Margin="0,4,0,0" />
 
-                <TextBlock Grid.Row="1" Grid.Column="6" Text="Budget:" Foreground="White" VerticalAlignment="Center" Margin="0,4,6,0" />
-                <TextBox Grid.Row="1" Grid.Column="7" Text="{Binding MapHeader.MaximumBudget}" Width="70" Margin="0,4,0,0" />
+                <TextBlock Grid.Row="1" Grid.Column="6" Text="Budget:" Foreground="White" VerticalAlignment="Top" Margin="0,8,6,0" />
+                <TextBox Grid.Row="1" Grid.Column="7" Text="{Binding MapHeader.MaximumBudget}" Width="70" VerticalAlignment="Top" Margin="0,4,0,0" />
 
-                <TextBlock Grid.Row="1" Grid.Column="9" Text="Current:" Foreground="White" VerticalAlignment="Center" Margin="0,4,6,0" />
-                <TextBox Grid.Row="1" Grid.Column="10" Text="{Binding MapHeader.CurrentBudget}" Width="70" Margin="0,4,0,0" />
+                <TextBlock Grid.Row="1" Grid.Column="9" Text="Current:" Foreground="White" VerticalAlignment="Top" Margin="0,8,6,0" />
+                <TextBox Grid.Row="1" Grid.Column="10" Text="{Binding MapHeader.CurrentBudget}" Width="70" VerticalAlignment="Top" Margin="0,4,0,0" />
             </Grid>
         </Border>
 

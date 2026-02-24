@@ -422,6 +422,12 @@ public class MccReachMapVariant : IMapVariantData
                 entry.Tag.Path = name;
                 entry.Tag.Class = palette.GetCategory(i) ?? "reach_object";
             }
+            else if (entry.CountOnMap == 0 && entry.RunTimeMaximum == 0)
+            {
+                // Empty padding slot beyond the palette - hide from UI
+                entry.Tag = null;
+                entry.Ident = -1;
+            }
         }
     }
 

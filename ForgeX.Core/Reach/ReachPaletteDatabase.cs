@@ -45,12 +45,24 @@ public class ReachPaletteDatabase
     {
         3006 => ForgeWorld(),
         1520 => Tempest(),
-        2006 => Ridgeline(),
-        2009 => Breakneck(),
+        2006 or 10030 => Ridgeline(),        // Ridgeline + Timberland Anniversary
+        2009 or 10050 => Breakneck(),        // Breakneck + Headlong Anniversary
         2002 => Highlands(),
         1055 => Reflection(),
         1150 => SwordBase(),
         1080 => Spire(),
+        1000 => Boardwalk(),
+        1020 => Boneyard(),
+        1035 => Countdown(),
+        1040 => Powerhouse(),
+        1200 => Zealot(),
+        1500 => Anchor9(),
+        1510 => Breakpoint(),
+        2001 => Condemned(),
+        2004 or 10020 => BattleCanyon(),     // Battle Canyon + Beaver Creek Anniversary
+        2005 or 10010 => Penance(),          // Penance + Damnation Anniversary
+        2007 or 10070 => Solitary(),         // Solitary + Prisoner Anniversary
+        2008 or 10060 => HighNoon(),         // High Noon + Hang 'Em High Anniversary
         _ => null,
     };
 
@@ -270,6 +282,7 @@ public class ReachPaletteDatabase
         db.Add("Equipment", "Target Designator");
         db.Add("Equipment", "Pelican, Hovering");
         db.Add("Equipment", "Phantom, Hovering");
+        db.Add("Objective", "Location Name");
 
         return db;
     }
@@ -428,6 +441,7 @@ public class ReachPaletteDatabase
         db.Add("Equipment", "Target Designator");
         db.Add("Equipment", "Pelican, Hovering");
         db.Add("Equipment", "Phantom, Hovering");
+        db.Add("Objective", "Location Name");
 
         return db;
     }
@@ -901,6 +915,604 @@ public class ReachPaletteDatabase
         db.Add("Structure", "Spire Cannon, Cliff");
         db.Add("Structure", "Spire Cannon, Gun");
 
+        return db;
+    }
+
+    private static ReachPaletteDatabase Boardwalk()
+    {
+        var db = new ReachPaletteDatabase();
+        db.AddUniversalEntries();
+        db.Add("Vehicle", "Ghost");
+        db.Add("Vehicle", "Mongoose");
+        db.AddVariants("Equipment", "Fusion Coil", "Landmine", "Plasma Battery", "Propane Tank");
+        db.Add("Equipment", "Health Station");
+        db.AddVariants("Equipment", "Camo Powerup", "Overshield", "Custom Powerup");
+        db.AddVariants("Equipment", "Cannon, Man", "Cannon, Man, Heavy", "Cannon, Man, Light", "Cannon, Vehicle", "Gravity Lift");
+        db.AddVariants("Equipment", "FX:Colorblind", "FX:Next Gen", "FX:Juicy", "FX:Nova", "FX:Olde Timey", "FX:Pen And Ink");
+        db.AddVariants("Equipment", "Receiver Node", "Sender Node", "Two-Way Node");
+        db.AddVariants("Equipment", "Die", "Golf Ball", "Golf Club", "Kill Ball", "Soccer Ball");
+        db.AddVariants("Equipment", "Light, Red", "Light, Blue", "Light, Green", "Light, Orange", "Light, Purple", "Light, Yellow", "Light, White", "Light, Red, Flashing", "Light, Yellow, Flashing");
+        db.Add("Spawner", "Initial Spawn");
+        db.Add("Spawner", "Respawn Point");
+        db.Add("Spawner", "Initial Loadout Camera");
+        db.Add("Spawner", "Respawn Zone");
+        db.Add("Spawner", "Respawn Zone, Weak");
+        db.Add("Spawner", "Respawn Zone, Anti");
+        db.AddVariants("Spawner", "Safe Boundary", "Soft Safe Boundary");
+        db.AddVariants("Spawner", "Kill Boundary", "Soft Kill Boundary");
+        db.Add("Objective", "Flag Stand");
+        db.Add("Objective", "Capture Plate");
+        db.Add("Objective", "Hill Marker");
+        db.AddVariants("Scenery", "Barricade, Small", "Barricade, Large", "Jersey Barrier", "Jersey Barrier, Short", "Covenant Barrier", "Portable Shield");
+        db.Add("Scenery", "Camping Stool");
+        db.Add("Scenery", "Folding Chair");
+        db.AddVariants("Scenery", "Crate, Small, Closed", "Crate, Metal, Multi", "Crate, Metal, Single", "Crate, Heavy Duty", "Crate, Heavy, Small", "Covenant Crate", "Crate, Half Open", "Crate, Fully Open");
+        db.Add("Scenery", "Dumpster");
+        db.Add("Scenery", "Dumpster, Tall");
+        db.Add("Scenery", "Plasma Storage");
+        db.AddVariants("Scenery", "Sandbag Wall", "Sandbag, Turret Wall", "Sandbag Corner, 45", "Sandbag Corner, 90", "Sandbag Endcap");
+        db.Add("Scenery", "Street Cone");
+        db.AddVariants("Scenery", "Pallet", "Pallet, Large", "Pallet, Metal");
+        db.Add("Structure", "Block, 2x2, Invisible");
+        db.Add("Structure", "Block, 1x1, Invisible");
+        db.Add("Structure", "Block, 2x2x2, Invisible");
+        db.Add("Structure", "Block, 4x4x2, Invisible");
+        db.Add("Structure", "Block, 4x4x4, Invisible");
+        db.Add("Structure", "Block, 2x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Small, Invisible");
+        db.Add("Structure", "Block, 2x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x4, Flat, Invisible");
+        return db;
+    }
+
+    private static ReachPaletteDatabase Boneyard()
+    {
+        var db = new ReachPaletteDatabase();
+        db.AddUniversalEntries();
+        db.Add("Vehicle", "Banshee");
+        db.Add("Vehicle", "Ghost");
+        db.Add("Vehicle", "Mongoose");
+        db.Add("Vehicle", "Scorpion");
+        db.AddVariants("Vehicle", "Warthog, Default", "Warthog, Gauss", "Warthog, Rocket");
+        db.Add("Vehicle", "Wraith");
+        db.AddVariants("Equipment", "Fusion Coil", "Landmine", "Plasma Battery");
+        db.Add("Equipment", "Health Station");
+        db.AddVariants("Equipment", "Camo Powerup", "Overshield", "Custom Powerup");
+        db.AddVariants("Equipment", "Cannon, Man", "Cannon, Man, Heavy", "Cannon, Man, Light", "Cannon, Vehicle", "Gravity Lift");
+        db.AddVariants("Equipment", "Receiver Node", "Sender Node", "Two-Way Node");
+        db.Add("Equipment", "Golf Club");
+        db.AddVariants("Equipment", "Light, Red", "Light, Blue", "Light, Green", "Light, Orange");
+        db.Add("Spawner", "Initial Spawn");
+        db.Add("Spawner", "Respawn Point");
+        db.Add("Spawner", "Initial Loadout Camera");
+        db.Add("Spawner", "Respawn Zone");
+        db.Add("Spawner", "Respawn Zone, Weak");
+        db.Add("Spawner", "Respawn Zone, Anti");
+        db.AddVariants("Spawner", "Safe Boundary", "Soft Safe Boundary");
+        db.AddVariants("Spawner", "Kill Boundary", "Soft Kill Boundary");
+        db.Add("Objective", "Flag Stand");
+        db.Add("Objective", "Capture Plate");
+        db.Add("Objective", "Hill Marker");
+        db.Add("Structure", "Ramp, Stunt");
+        db.Add("Equipment", "Shield Door, Small");
+        db.Add("Equipment", "Shield Door, Medium");
+        db.Add("Equipment", "Shield Door, Large");
+        db.Add("Equipment", "One Way Shield 1");
+        db.Add("Equipment", "One Way Shield 2");
+        db.Add("Equipment", "One Way Shield 3");
+        db.Add("Equipment", "One Way Shield 4");
+        db.Add("Equipment", "One Way Shield 5");
+        db.Add("Equipment", "Shield Wall, Small");
+        db.Add("Equipment", "Shield Wall, Medium");
+        db.Add("Equipment", "Shield Wall, Large");
+        db.Add("Equipment", "Shield Wall, X-Large");
+        db.Add("Structure", "Block, 2x2, Invisible");
+        db.Add("Structure", "Block, 1x1, Invisible");
+        db.Add("Structure", "Block, 2x2x2, Invisible");
+        db.Add("Structure", "Block, 4x4x2, Invisible");
+        db.Add("Structure", "Block, 4x4x4, Invisible");
+        db.Add("Structure", "Block, 2x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Small, Invisible");
+        db.Add("Structure", "Block, 2x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x4, Flat, Invisible");
+        return db;
+    }
+
+    private static ReachPaletteDatabase Countdown()
+    {
+        var db = new ReachPaletteDatabase();
+        db.AddUniversalEntries();
+        db.AddVariants("Equipment", "Fusion Coil", "Landmine", "Plasma Battery", "Propane Tank");
+        db.Add("Equipment", "Health Station");
+        db.AddVariants("Equipment", "Camo Powerup", "Overshield", "Custom Powerup");
+        db.AddVariants("Equipment", "Cannon, Man", "Cannon, Man, Heavy", "Cannon, Man, Light", "Cannon, Vehicle", "Gravity Lift");
+        db.AddVariants("Equipment", "FX:Colorblind", "FX:Next Gen", "FX:Juicy", "FX:Nova", "FX:Olde Timey", "FX:Pen And Ink");
+        db.AddVariants("Equipment", "Receiver Node", "Sender Node", "Two-Way Node");
+        db.AddVariants("Equipment", "Die", "Golf Ball", "Golf Club", "Kill Ball", "Soccer Ball");
+        db.AddVariants("Equipment", "Light, Red", "Light, Blue", "Light, Green", "Light, Orange", "Light, Purple", "Light, Yellow", "Light, White", "Light, Red, Flashing", "Light, Yellow, Flashing");
+        db.Add("Spawner", "Initial Spawn");
+        db.Add("Spawner", "Respawn Point");
+        db.Add("Spawner", "Initial Loadout Camera");
+        db.Add("Spawner", "Respawn Zone");
+        db.Add("Spawner", "Respawn Zone, Weak");
+        db.Add("Spawner", "Respawn Zone, Anti");
+        db.AddVariants("Spawner", "Safe Boundary", "Soft Safe Boundary");
+        db.AddVariants("Spawner", "Kill Boundary", "Soft Kill Boundary");
+        db.Add("Objective", "Flag Stand");
+        db.Add("Objective", "Capture Plate");
+        db.Add("Objective", "Hill Marker");
+        db.AddVariants("Scenery", "Barricade, Small", "Barricade, Large", "Jersey Barrier", "Jersey Barrier, Short", "Covenant Barrier", "Portable Shield");
+        db.Add("Scenery", "Camping Stool");
+        db.Add("Scenery", "Folding Chair");
+        db.AddVariants("Scenery", "Crate, Small, Closed", "Crate, Metal, Multi", "Crate, Metal, Single", "Crate, Heavy Duty", "Crate, Heavy, Small", "Covenant Crate", "Crate, Half Open", "Crate, Fully Open");
+        db.Add("Scenery", "Dumpster");
+        db.Add("Scenery", "Dumpster, Tall");
+        db.AddVariants("Scenery", "Sandbag Wall", "Sandbag, Turret Wall", "Sandbag Corner, 45", "Sandbag Corner, 90", "Sandbag Endcap");
+        db.Add("Scenery", "Street Cone");
+        db.AddVariants("Scenery", "Pallet", "Pallet, Large", "Pallet, Metal");
+        db.Add("Structure", "Block, 2x2, Invisible");
+        db.Add("Structure", "Block, 1x1, Invisible");
+        db.Add("Structure", "Block, 2x2x2, Invisible");
+        db.Add("Structure", "Block, 4x4x2, Invisible");
+        db.Add("Structure", "Block, 4x4x4, Invisible");
+        db.Add("Structure", "Block, 2x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Small, Invisible");
+        db.Add("Structure", "Block, 2x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x4, Flat, Invisible");
+        db.Add("Structure", "I-Beam");
+        db.Add("Structure", "Cover, Large, Human");
+        db.Add("Structure", "Door, Human");
+        return db;
+    }
+
+    private static ReachPaletteDatabase Powerhouse()
+    {
+        var db = new ReachPaletteDatabase();
+        db.AddUniversalEntries();
+        db.Add("Vehicle", "Ghost");
+        db.Add("Vehicle", "Mongoose");
+        db.AddVariants("Equipment", "Fusion Coil", "Landmine", "Plasma Battery", "Propane Tank");
+        db.Add("Equipment", "Health Station");
+        db.AddVariants("Equipment", "Camo Powerup", "Overshield", "Custom Powerup");
+        db.AddVariants("Equipment", "Cannon, Man", "Cannon, Man, Heavy", "Cannon, Man, Light", "Cannon, Vehicle", "Gravity Lift");
+        db.AddVariants("Equipment", "FX:Colorblind", "FX:Next Gen", "FX:Juicy", "FX:Nova", "FX:Olde Timey", "FX:Pen And Ink");
+        db.AddVariants("Equipment", "Receiver Node", "Sender Node", "Two-Way Node");
+        db.AddVariants("Equipment", "Die", "Golf Ball", "Golf Club", "Kill Ball", "Soccer Ball");
+        db.AddVariants("Equipment", "Light, Red", "Light, Blue", "Light, Green", "Light, Orange", "Light, Purple", "Light, Yellow", "Light, White", "Light, Red, Flashing", "Light, Yellow, Flashing");
+        db.Add("Spawner", "Initial Spawn");
+        db.Add("Spawner", "Respawn Point");
+        db.Add("Spawner", "Initial Loadout Camera");
+        db.Add("Spawner", "Respawn Zone");
+        db.Add("Spawner", "Respawn Zone, Weak");
+        db.Add("Spawner", "Respawn Zone, Anti");
+        db.AddVariants("Spawner", "Safe Boundary", "Soft Safe Boundary");
+        db.AddVariants("Spawner", "Kill Boundary", "Soft Kill Boundary");
+        db.Add("Objective", "Flag Stand");
+        db.Add("Objective", "Capture Plate");
+        db.Add("Objective", "Hill Marker");
+        db.AddVariants("Scenery", "Barricade, Small", "Barricade, Large", "Jersey Barrier", "Jersey Barrier, Short", "Covenant Barrier", "Portable Shield");
+        db.Add("Scenery", "Camping Stool");
+        db.Add("Scenery", "Camping Stool, Covenant");
+        db.Add("Scenery", "Folding Chair");
+        db.Add("Scenery", "Covenant Antenna");
+        db.AddVariants("Scenery", "Crate, Small, Closed", "Crate, Metal, Multi", "Crate, Metal, Single", "Crate, Heavy Duty", "Crate, Heavy, Small", "Covenant Crate", "Crate, Half Open", "Crate, Fully Open");
+        db.Add("Scenery", "Dumpster");
+        db.Add("Scenery", "Dumpster, Tall");
+        db.Add("Scenery", "Plasma Storage");
+        db.AddVariants("Scenery", "Sandbag Wall", "Sandbag, Turret Wall", "Sandbag Corner, 45", "Sandbag Corner, 90", "Sandbag Endcap");
+        db.Add("Scenery", "Street Cone");
+        db.AddVariants("Scenery", "Pallet", "Pallet, Large", "Pallet, Metal");
+        db.Add("Structure", "Block, 2x2, Invisible");
+        db.Add("Structure", "Block, 1x1, Invisible");
+        db.Add("Structure", "Block, 2x2x2, Invisible");
+        db.Add("Structure", "Block, 4x4x2, Invisible");
+        db.Add("Structure", "Block, 4x4x4, Invisible");
+        db.Add("Structure", "Block, 2x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Small, Invisible");
+        db.Add("Structure", "Block, 2x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x4, Flat, Invisible");
+        return db;
+    }
+
+    private static ReachPaletteDatabase Zealot()
+    {
+        var db = new ReachPaletteDatabase();
+        db.AddUniversalEntries();
+        db.AddVariants("Equipment", "Fusion Coil", "Landmine", "Plasma Battery", "Propane Tank");
+        db.Add("Equipment", "Health Station");
+        db.AddVariants("Equipment", "Camo Powerup", "Overshield", "Custom Powerup");
+        db.AddVariants("Equipment", "Cannon, Man", "Cannon, Man, Heavy", "Cannon, Man, Light", "Cannon, Vehicle", "Gravity Lift");
+        db.AddVariants("Equipment", "FX:Colorblind", "FX:Next Gen", "FX:Juicy", "FX:Nova", "FX:Olde Timey", "FX:Pen And Ink");
+        db.AddVariants("Equipment", "Receiver Node", "Sender Node", "Two-Way Node");
+        db.AddVariants("Equipment", "Die", "Golf Ball", "Golf Club", "Kill Ball", "Soccer Ball");
+        db.AddVariants("Equipment", "Light, Red", "Light, Blue", "Light, Green", "Light, Orange", "Light, Purple", "Light, Yellow", "Light, White", "Light, Red, Flashing", "Light, Yellow, Flashing");
+        db.Add("Spawner", "Initial Spawn");
+        db.Add("Spawner", "Respawn Point");
+        db.Add("Spawner", "Initial Loadout Camera");
+        db.Add("Spawner", "Respawn Zone");
+        db.Add("Spawner", "Respawn Zone, Weak");
+        db.Add("Spawner", "Respawn Zone, Anti");
+        db.AddVariants("Spawner", "Safe Boundary", "Soft Safe Boundary");
+        db.AddVariants("Spawner", "Kill Boundary", "Soft Kill Boundary");
+        db.Add("Objective", "Flag Stand");
+        db.Add("Objective", "Capture Plate");
+        db.Add("Objective", "Hill Marker");
+        db.AddVariants("Scenery", "Barricade, Small", "Barricade, Large", "Covenant Barrier", "Portable Shield");
+        db.Add("Scenery", "Camping Stool, Covenant");
+        db.Add("Scenery", "Covenant Antenna");
+        db.AddVariants("Scenery", "Crate, Heavy Duty", "Crate, Heavy, Small", "Covenant Crate", "Crate, Half Open", "Crate, Fully Open");
+        db.Add("Scenery", "Plasma Storage");
+        db.AddVariants("Scenery", "Sandbag Wall", "Sandbag, Turret Wall", "Sandbag Corner, 45", "Sandbag Corner, 90", "Sandbag Endcap");
+        db.Add("Structure", "Block, 2x2, Invisible");
+        db.Add("Structure", "Block, 1x1, Invisible");
+        db.Add("Structure", "Block, 2x2x2, Invisible");
+        db.Add("Structure", "Block, 4x4x2, Invisible");
+        db.Add("Structure", "Block, 4x4x4, Invisible");
+        db.Add("Structure", "Block, 2x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Small, Invisible");
+        db.Add("Structure", "Block, 2x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x4, Flat, Invisible");
+        db.Add("Structure", "Platform, Covenant");
+        return db;
+    }
+
+    private static ReachPaletteDatabase Anchor9()
+    {
+        var db = new ReachPaletteDatabase();
+        db.AddUniversalEntries();
+        db.AddVariants("Equipment", "Fusion Coil", "Landmine");
+        db.Add("Equipment", "Health Station");
+        db.AddVariants("Equipment", "Camo Powerup", "Overshield", "Custom Powerup");
+        db.AddVariants("Equipment", "Cannon, Man", "Cannon, Man, Heavy", "Cannon, Man, Light", "Cannon, Vehicle", "Gravity Lift");
+        db.AddVariants("Equipment", "FX:Colorblind", "FX:Next Gen", "FX:Juicy", "FX:Nova", "FX:Olde Timey", "FX:Pen And Ink");
+        db.AddVariants("Equipment", "Receiver Node", "Sender Node", "Two-Way Node");
+        db.AddVariants("Equipment", "Die", "Golf Ball", "Golf Club", "Kill Ball", "Soccer Ball", "Tin Cup");
+        db.AddVariants("Equipment", "Light, Red", "Light, Blue", "Light, Green", "Light, Orange", "Light, Purple", "Light, Yellow", "Light, White", "Light, Red, Flashing", "Light, Yellow, Flashing");
+        db.Add("Spawner", "Initial Spawn");
+        db.Add("Spawner", "Respawn Point");
+        db.Add("Spawner", "Initial Loadout Camera");
+        db.Add("Spawner", "Respawn Zone");
+        db.Add("Spawner", "Respawn Zone, Weak");
+        db.Add("Spawner", "Respawn Zone, Anti");
+        db.AddVariants("Spawner", "Safe Boundary", "Soft Safe Boundary");
+        db.AddVariants("Spawner", "Kill Boundary", "Soft Kill Boundary");
+        db.Add("Objective", "Flag Stand");
+        db.Add("Objective", "Capture Plate");
+        db.Add("Objective", "Hill Marker");
+        db.Add("Scenery", "Engine Cart");
+        db.Add("Scenery", "Missile Cart");
+        db.Add("Structure", "Wall");
+        db.Add("Scenery", "Street Cone");
+        db.AddVariants("Equipment", "Shield Door, Small", "Shield Door, Small 1", "Shield Door, Large", "Shield Door, Large 1");
+        db.Add("Equipment", "Low Gravity Volume");
+        db.Add("Equipment", "Shield Door, Large (Anchor 9)");
+        db.Add("Equipment", "Shield Door, Small (Anchor 9)");
+        db.Add("Structure", "Block, 2x2, Invisible");
+        db.Add("Structure", "Block, 1x1, Invisible");
+        db.Add("Structure", "Block, 2x2x2, Invisible");
+        db.Add("Structure", "Block, 4x4x2, Invisible");
+        db.Add("Structure", "Block, 4x4x4, Invisible");
+        db.Add("Structure", "Block, 2x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Small, Invisible");
+        db.Add("Structure", "Block, 2x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x4, Flat, Invisible");
+        db.Add("Objective", "Destination Delta");
+        return db;
+    }
+
+    private static ReachPaletteDatabase Breakpoint()
+    {
+        var db = new ReachPaletteDatabase();
+        db.AddUniversalEntries();
+        db.Add("Vehicle", "Banshee");
+        db.Add("Vehicle", "Falcon");
+        db.Add("Vehicle", "Ghost");
+        db.Add("Vehicle", "Mongoose");
+        db.AddVariants("Vehicle", "Warthog, Default", "Warthog, Gauss", "Warthog, Rocket");
+        db.Add("Vehicle", "Wraith");
+        db.Add("Vehicle", "Scorpion");
+        db.AddVariants("Equipment", "Fusion Coil", "Landmine");
+        db.Add("Equipment", "Health Station");
+        db.AddVariants("Equipment", "Camo Powerup", "Overshield", "Custom Powerup");
+        db.AddVariants("Equipment", "Cannon, Man", "Cannon, Man, Heavy", "Cannon, Man, Light", "Cannon, Vehicle", "Gravity Lift");
+        db.AddVariants("Equipment", "FX:Colorblind", "FX:Next Gen", "FX:Juicy", "FX:Nova", "FX:Olde Timey", "FX:Pen And Ink");
+        db.AddVariants("Equipment", "Receiver Node", "Sender Node", "Two-Way Node");
+        db.AddVariants("Equipment", "Die", "Golf Ball", "Golf Club", "Kill Ball", "Soccer Ball", "Tin Cup");
+        db.AddVariants("Equipment", "Light, Red", "Light, Blue", "Light, Green", "Light, Orange", "Light, Purple", "Light, Yellow", "Light, White", "Light, Red, Flashing", "Light, Yellow, Flashing");
+        db.Add("Spawner", "Initial Spawn");
+        db.Add("Spawner", "Respawn Point");
+        db.Add("Spawner", "Initial Loadout Camera");
+        db.Add("Spawner", "Respawn Zone");
+        db.Add("Spawner", "Respawn Zone, Weak");
+        db.Add("Spawner", "Respawn Zone, Anti");
+        db.AddVariants("Spawner", "Safe Boundary", "Soft Safe Boundary");
+        db.AddVariants("Spawner", "Kill Boundary", "Soft Kill Boundary");
+        db.Add("Objective", "Flag Stand");
+        db.Add("Objective", "Capture Plate");
+        db.Add("Objective", "Hill Marker");
+        db.AddVariants("Scenery", "Barricade, Small", "Barricade, Large", "Covenant Barrier", "Portable Shield", "Heavy Barrier", "Jersey Barrier");
+        db.AddVariants("Scenery", "Crate, Heavy Duty", "Crate, Heavy, Small", "Covenant Crate", "Crate, Half Open");
+        db.Add("Scenery", "Street Cone");
+        db.Add("Structure", "Bridge");
+        db.AddVariants("Structure", "Door", "One Way Shield 1", "One Way Shield 2");
+        db.Add("Structure", "Rock, Flat");
+        db.Add("Structure", "Rock, Medium 1");
+        db.Add("Structure", "Rock, Small");
+        db.Add("Structure", "Block, 2x2, Invisible");
+        db.Add("Structure", "Block, 1x1, Invisible");
+        db.Add("Structure", "Block, 2x2x2, Invisible");
+        db.Add("Structure", "Block, 4x4x2, Invisible");
+        db.Add("Structure", "Block, 4x4x4, Invisible");
+        db.Add("Structure", "Block, 2x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Small, Invisible");
+        db.Add("Structure", "Block, 2x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x4, Flat, Invisible");
+        db.Add("Objective", "Destination Delta");
+        db.Add("Objective", "Destination Zulu");
+        return db;
+    }
+
+    private static ReachPaletteDatabase Condemned()
+    {
+        var db = new ReachPaletteDatabase();
+        db.AddUniversalEntries();
+        db.AddVariants("Equipment", "Fusion Coil", "Propane Tank");
+        db.Add("Equipment", "Health Station");
+        db.AddVariants("Equipment", "Camo Powerup", "Overshield", "Custom Powerup");
+        db.AddVariants("Equipment", "Cannon, Man", "Cannon, Man, Heavy", "Cannon, Man, Light", "Cannon, Vehicle", "Gravity Lift");
+        db.AddVariants("Equipment", "FX:Colorblind", "FX:Next Gen", "FX:Juicy", "FX:Nova", "FX:Olde Timey", "FX:Pen And Ink");
+        db.AddVariants("Equipment", "Receiver Node", "Sender Node", "Two-Way Node");
+        db.AddVariants("Equipment", "Die", "Golf Ball", "Golf Club", "Kill Ball", "Soccer Ball", "Tin Cup");
+        db.AddVariants("Equipment", "Light, Red", "Light, Blue", "Light, Green", "Light, Orange", "Light, Purple", "Light, Yellow", "Light, White", "Light, Red, Flashing", "Light, Yellow, Flashing");
+        db.Add("Spawner", "Initial Spawn");
+        db.Add("Spawner", "Respawn Point");
+        db.Add("Spawner", "Initial Loadout Camera");
+        db.Add("Spawner", "Respawn Zone");
+        db.Add("Spawner", "Respawn Zone, Weak");
+        db.Add("Spawner", "Respawn Zone, Anti");
+        db.AddVariants("Spawner", "Safe Boundary", "Soft Safe Boundary");
+        db.AddVariants("Spawner", "Kill Boundary", "Soft Kill Boundary");
+        db.Add("Objective", "Flag Stand");
+        db.Add("Objective", "Capture Plate");
+        db.Add("Objective", "Hill Marker");
+        db.AddVariants("Scenery", "Barricade, Small", "Barricade, Large", "Jersey Barrier", "Jersey Barrier, Short", "Covenant Barrier", "Portable Shield");
+        db.Add("Scenery", "Camping Stool");
+        db.Add("Scenery", "Camping Stool, Covenant");
+        db.Add("Scenery", "Folding Chair");
+        db.AddVariants("Scenery", "Crate, Small, Closed", "Crate, Metal, Multi", "Crate, Metal, Single", "Crate, Heavy Duty", "Crate, Heavy, Small", "Covenant Crate", "Crate, Half Open", "Crate, Fully Open");
+        db.Add("Scenery", "Plasma Storage");
+        db.AddVariants("Scenery", "Sandbag Wall", "Sandbag, Turret Wall", "Sandbag Corner, 45", "Sandbag Corner, 90", "Sandbag Endcap");
+        db.Add("Scenery", "Street Cone");
+        db.AddVariants("Scenery", "Pallet", "Pallet, Large", "Pallet, Metal");
+        db.Add("Structure", "Block, 2x2, Invisible");
+        db.Add("Structure", "Block, 1x1, Invisible");
+        db.Add("Structure", "Block, 2x2x2, Invisible");
+        db.Add("Structure", "Block, 4x4x2, Invisible");
+        db.Add("Structure", "Block, 4x4x4, Invisible");
+        db.Add("Structure", "Block, 2x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Small, Invisible");
+        db.Add("Structure", "Block, 2x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x4, Flat, Invisible");
+        db.AddVariants("Structure", "Wall", "Wall, Double", "Wall, Corner", "Wall, Curved", "Wall, Coliseum", "Shield Door, Small", "Red (Condemned)", "Blue (Condemned)");
+        return db;
+    }
+
+    private static ReachPaletteDatabase BattleCanyon()
+    {
+        var db = new ReachPaletteDatabase();
+        db.AddUniversalEntries();
+        db.AddVariants("Equipment", "Fusion Coil", "Landmine", "Plasma Battery", "Propane Tank");
+        db.Add("Equipment", "Health Station");
+        db.AddVariants("Equipment", "Camo Powerup", "Overshield", "Custom Powerup");
+        db.AddVariants("Equipment", "Cannon, Man", "Cannon, Man, Heavy", "Cannon, Man, Light", "Cannon, Vehicle", "Gravity Lift", "Gravity Lift, Forerunner", "Gravity Lift, Tall, Forerunner");
+        db.AddVariants("Equipment", "FX:Colorblind", "FX:Next Gen", "FX:Juicy", "FX:Nova", "FX:Olde Timey", "FX:Pen And Ink");
+        db.AddVariants("Equipment", "Receiver Node", "Sender Node", "Two-Way Node");
+        db.AddVariants("Equipment", "Die", "Golf Ball", "Golf Club", "Kill Ball", "Soccer Ball", "Tin Cup");
+        db.AddVariants("Equipment", "Light, Red", "Light, Blue", "Light, Green", "Light, Orange", "Light, Purple", "Light, Yellow", "Light, White", "Light, Red, Flashing", "Light, Yellow, Flashing");
+        db.Add("Spawner", "Initial Spawn");
+        db.Add("Spawner", "Respawn Point");
+        db.Add("Spawner", "Initial Loadout Camera");
+        db.Add("Spawner", "Respawn Zone");
+        db.Add("Spawner", "Respawn Zone, Weak");
+        db.Add("Spawner", "Respawn Zone, Anti");
+        db.AddVariants("Spawner", "Safe Boundary", "Soft Safe Boundary");
+        db.AddVariants("Spawner", "Kill Boundary", "Soft Kill Boundary");
+        db.Add("Objective", "Flag Stand");
+        db.Add("Objective", "Capture Plate");
+        db.Add("Objective", "Hill Marker");
+        db.AddVariants("Scenery", "Barricade, Small", "Barricade, Large", "Jersey Barrier", "Jersey Barrier, Short", "Covenant Barrier", "Portable Shield");
+        db.Add("Scenery", "Camping Stool");
+        db.Add("Scenery", "Folding Chair");
+        db.AddVariants("Scenery", "Crate, Metal, Multi", "Crate, Metal, Single", "Crate, Heavy Duty", "Crate, Heavy, Small", "Covenant Crate", "Crate, Half Open", "Crate, Fully Open");
+        db.AddVariants("Scenery", "Sandbag Wall", "Sandbag, Turret Wall", "Sandbag Corner, 45", "Sandbag Corner, 90", "Sandbag Endcap");
+        db.Add("Scenery", "Street Cone");
+        db.AddVariants("Scenery", "Pallet", "Pallet, Large", "Pallet, Metal");
+        db.AddVariants("Structure", "Block, 1x1", "Block, 1x1, Flat", "Block, 1x1, Short", "Block, 1x1, Tall", "Block, 1x1, Tall And Thin", "Block, 1x2", "Block, 1x4", "Block, 2x1, Flat", "Block, 2x2", "Block, 2x2, Flat", "Block, 2x2, Short", "Block, 2x2, Tall", "Block, 2x3", "Block, 2x4", "Block, 3x1, Flat");
+        db.AddVariants("Structure", "Bridge, Small", "Bridge, Medium", "Bridge, Large", "Corner, 45 Degrees", "Corner, 2x2");
+        db.AddVariants("Structure", "Bunker, Small", "Bunker, Small, Covered");
+        db.AddVariants("Structure", "Brace", "Column", "Cover", "Cover, Crenellation", "Railing, Small", "Railing, Medium", "Railing, Long", "Teleporter Frame");
+        db.AddVariants("Structure", "Door, Forerunner 1", "Door, Forerunner 2");
+        db.AddVariants("Structure", "Ramp, 1x2", "Ramp, 1x2, Shallow", "Ramp, 2x2", "Ramp, Bridge, Small");
+        db.AddVariants("Structure", "Rock, Small", "Rock, Flat", "Rock, Medium 1", "Rock, Spire 2", "Rock Cluster, Blocker", "Rock, Large, Blocker");
+        db.Add("Structure", "Block, 2x2, Invisible");
+        db.Add("Structure", "Block, 1x1, Invisible");
+        db.Add("Structure", "Block, 2x2x2, Invisible");
+        db.Add("Structure", "Block, 4x4x2, Invisible");
+        db.Add("Structure", "Block, 4x4x4, Invisible");
+        db.Add("Structure", "Block, 2x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Small, Invisible");
+        db.Add("Structure", "Block, 2x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x4, Flat, Invisible");
+        db.Add("Equipment", "Health Cabinet");
+        return db;
+    }
+
+    private static ReachPaletteDatabase Penance()
+    {
+        var db = new ReachPaletteDatabase();
+        db.AddUniversalEntries();
+        db.AddVariants("Equipment", "Fusion Coil", "Landmine", "Plasma Battery", "Propane Tank");
+        db.Add("Equipment", "Health Station");
+        db.AddVariants("Equipment", "Camo Powerup", "Overshield", "Custom Powerup");
+        db.AddVariants("Equipment", "Cannon, Man", "Cannon, Man, Heavy", "Cannon, Man, Light", "Cannon, Vehicle", "Gravity Lift", "Gravity Lift, Covenant");
+        db.AddVariants("Equipment", "FX:Colorblind", "FX:Next Gen", "FX:Juicy", "FX:Nova", "FX:Olde Timey", "FX:Pen And Ink");
+        db.AddVariants("Equipment", "Receiver Node", "Sender Node", "Two-Way Node");
+        db.AddVariants("Equipment", "Die", "Golf Ball", "Golf Club", "Kill Ball", "Soccer Ball", "Tin Cup");
+        db.AddVariants("Equipment", "Light, Red", "Light, Blue", "Light, Green", "Light, Orange", "Light, Purple", "Light, Yellow", "Light, White", "Light, Red, Flashing", "Light, Yellow, Flashing");
+        db.Add("Spawner", "Initial Spawn");
+        db.Add("Spawner", "Respawn Point");
+        db.Add("Spawner", "Initial Loadout Camera");
+        db.Add("Spawner", "Respawn Zone");
+        db.Add("Spawner", "Respawn Zone, Weak");
+        db.Add("Spawner", "Respawn Zone, Anti");
+        db.AddVariants("Spawner", "Safe Boundary", "Soft Safe Boundary");
+        db.AddVariants("Spawner", "Kill Boundary", "Soft Kill Boundary");
+        db.Add("Objective", "Flag Stand");
+        db.Add("Objective", "Capture Plate");
+        db.Add("Objective", "Hill Marker");
+        db.AddVariants("Scenery", "Barricade, Small", "Barricade, Large", "Covenant Barrier", "Portable Shield");
+        db.Add("Scenery", "Camping Stool, Covenant");
+        db.Add("Scenery", "Covenant Antenna");
+        db.AddVariants("Scenery", "Crate, Heavy Duty", "Crate, Heavy, Small", "Covenant Crate", "Crate, Half Open", "Crate, Fully Open");
+        db.Add("Scenery", "Plasma Storage");
+        db.AddVariants("Scenery", "Sandbag Wall", "Sandbag, Turret Wall", "Sandbag Corner, 45", "Sandbag Corner, 90", "Sandbag Endcap");
+        db.Add("Structure", "Platform, Covenant");
+        db.Add("Structure", "Block, 2x2, Invisible");
+        db.Add("Structure", "Block, 1x1, Invisible");
+        db.Add("Structure", "Block, 2x2x2, Invisible");
+        db.Add("Structure", "Block, 4x4x2, Invisible");
+        db.Add("Structure", "Block, 4x4x4, Invisible");
+        db.Add("Structure", "Block, 2x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Small, Invisible");
+        db.Add("Structure", "Block, 2x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x4, Flat, Invisible");
+        db.Add("Equipment", "Health Cabinet");
+        return db;
+    }
+
+    private static ReachPaletteDatabase Solitary()
+    {
+        var db = new ReachPaletteDatabase();
+        db.AddUniversalEntries();
+        db.AddVariants("Equipment", "Fusion Coil", "Landmine", "Plasma Battery", "Propane Tank");
+        db.Add("Equipment", "Health Station");
+        db.AddVariants("Equipment", "Camo Powerup", "Overshield", "Custom Powerup");
+        db.AddVariants("Equipment", "Cannon, Man", "Cannon, Man, Heavy", "Cannon, Man, Light", "Cannon, Vehicle", "Gravity Lift");
+        db.AddVariants("Equipment", "FX:Colorblind", "FX:Next Gen", "FX:Juicy", "FX:Nova", "FX:Olde Timey", "FX:Pen And Ink");
+        db.AddVariants("Equipment", "Receiver Node", "Sender Node", "Two-Way Node");
+        db.AddVariants("Equipment", "Die", "Golf Ball", "Golf Club", "Kill Ball", "Soccer Ball", "Tin Cup");
+        db.AddVariants("Equipment", "Light, Red", "Light, Blue", "Light, Green", "Light, Orange", "Light, Purple", "Light, Yellow", "Light, White", "Light, Red, Flashing", "Light, Yellow, Flashing");
+        db.Add("Spawner", "Initial Spawn");
+        db.Add("Spawner", "Respawn Point");
+        db.Add("Spawner", "Initial Loadout Camera");
+        db.Add("Spawner", "Respawn Zone");
+        db.Add("Spawner", "Respawn Zone, Weak");
+        db.Add("Spawner", "Respawn Zone, Anti");
+        db.AddVariants("Spawner", "Safe Boundary", "Soft Safe Boundary");
+        db.AddVariants("Spawner", "Kill Boundary", "Soft Kill Boundary");
+        db.Add("Objective", "Flag Stand");
+        db.Add("Objective", "Capture Plate");
+        db.Add("Objective", "Hill Marker");
+        db.AddVariants("Scenery", "Barricade, Small", "Barricade, Large", "Jersey Barrier", "Jersey Barrier, Short", "Covenant Barrier", "Portable Shield");
+        db.Add("Scenery", "Camping Stool");
+        db.Add("Scenery", "Folding Chair");
+        db.AddVariants("Scenery", "Crate, Metal, Multi", "Crate, Heavy Duty", "Crate, Heavy, Small", "Covenant Crate", "Crate, Half Open", "Crate, Fully Open", "Crate, Forerunner, Small", "Crate, Forerunner, Large");
+        db.Add("Scenery", "Dumpster");
+        db.Add("Scenery", "Dumpster, Tall");
+        db.AddVariants("Scenery", "Sandbag Wall", "Sandbag, Turret Wall", "Sandbag Corner, 45", "Sandbag Corner, 90", "Sandbag Endcap");
+        db.Add("Scenery", "Street Cone");
+        db.AddVariants("Scenery", "Pallet", "Pallet, Large", "Pallet, Metal");
+        db.AddVariants("Structure", "Block, 1x1", "Block, 1x1, Flat", "Block, 1x1, Short", "Block, 1x1, Tall", "Block, 1x1, Tall And Thin", "Block, 1x2", "Block, 1x4", "Block, 2x1, Flat", "Block, 2x2", "Block, 2x2, Flat", "Block, 2x2, Short", "Block, 2x2, Tall", "Block, 2x3", "Block, 2x4", "Block, 3x1, Flat", "Block, 3x3", "Block, 3x3, Flat", "Block, 3x3, Short", "Block, 3x4", "Block, 4x4", "Block, 4x4, Flat", "Block, 4x4, Short", "Block, 5x1, Short");
+        db.AddVariants("Structure", "Bridge, Small", "Bridge, Medium", "Bridge, Large", "Bridge, XLarge", "Bridge, Diagonal", "Bridge, Diag, Small", "Corner, 45 Degrees", "Corner, 2x2", "Corner, 4x4", "Platform, Y", "Catwalk, Straight", "Catwalk, Short", "Catwalk, Bend, Left", "Catwalk, Bend, Right");
+        db.AddVariants("Structure", "Antenna, Small", "Brace", "Column", "Cover", "Cover, Crenellation", "Cover, Glass", "Glass Sail", "Railing, Small", "Railing, Medium", "Railing, Long", "Teleporter Frame", "Strut", "Cover, Small");
+        db.AddVariants("Structure", "Door", "Door, Double", "Window", "Window, Double", "Wall", "Wall, Double", "Wall, Corner", "Wall, Curved", "Tunnel, Short", "Tunnel, Long", "Door A, Forerunner", "Door B, Forerunner");
+        db.AddVariants("Structure", "Bank, 1x1", "Bank, 1x2", "Bank, 2x1", "Bank, 2x2", "Ramp, 1x2", "Ramp, 1x2, Shallow", "Ramp, 2x2", "Ramp, 2x2, Steep", "Ramp, Circular, Small", "Ramp, Bridge, Small", "Ramp, Bridge, Medium", "Ramp, Bridge, Large");
+        db.Add("Structure", "Grid");
+        db.Add("Structure", "Block, 2x2, Invisible");
+        db.Add("Structure", "Block, 1x1, Invisible");
+        db.Add("Structure", "Block, 2x2x2, Invisible");
+        db.Add("Structure", "Block, 4x4x2, Invisible");
+        db.Add("Structure", "Block, 4x4x4, Invisible");
+        db.Add("Structure", "Block, 2x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Small, Invisible");
+        db.Add("Structure", "Block, 2x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x4, Flat, Invisible");
+        db.Add("Equipment", "Health Cabinet");
+        db.AddVariants("Equipment", "Gravity Lift, Short (Solitary)", "Gravity Lift, Tall (Solitary)");
+        return db;
+    }
+
+    private static ReachPaletteDatabase HighNoon()
+    {
+        var db = new ReachPaletteDatabase();
+        db.AddUniversalEntries();
+        db.AddVariants("Equipment", "Fusion Coil", "Landmine", "Plasma Battery", "Propane Tank");
+        db.Add("Equipment", "Health Station");
+        db.AddVariants("Equipment", "Camo Powerup", "Overshield", "Custom Powerup");
+        db.AddVariants("Equipment", "Cannon, Man", "Cannon, Man, Heavy", "Cannon, Man, Light", "Cannon, Vehicle", "Gravity Lift", "Gravity Lift, Forerunner", "Gravity Lift, Tall, Forerunner");
+        db.AddVariants("Equipment", "FX:Colorblind", "FX:Next Gen", "FX:Juicy", "FX:Nova", "FX:Olde Timey", "FX:Pen And Ink");
+        db.AddVariants("Equipment", "Receiver Node", "Sender Node", "Two-Way Node");
+        db.AddVariants("Equipment", "Die", "Golf Ball", "Golf Club", "Kill Ball", "Soccer Ball", "Tin Cup");
+        db.AddVariants("Equipment", "Light, Red", "Light, Blue", "Light, Green", "Light, Orange", "Light, Purple", "Light, Yellow", "Light, White", "Light, Red, Flashing", "Light, Yellow, Flashing");
+        db.Add("Spawner", "Initial Spawn");
+        db.Add("Spawner", "Respawn Point");
+        db.Add("Spawner", "Initial Loadout Camera");
+        db.Add("Spawner", "Respawn Zone");
+        db.Add("Spawner", "Respawn Zone, Weak");
+        db.Add("Spawner", "Respawn Zone, Anti");
+        db.AddVariants("Spawner", "Safe Boundary", "Soft Safe Boundary");
+        db.AddVariants("Spawner", "Kill Boundary", "Soft Kill Boundary");
+        db.Add("Objective", "Flag Stand");
+        db.Add("Objective", "Capture Plate");
+        db.Add("Objective", "Hill Marker");
+        db.AddVariants("Scenery", "Barricade, Small", "Barricade, Large", "Jersey Barrier", "Jersey Barrier, Short", "Covenant Barrier", "Portable Shield");
+        db.Add("Scenery", "Camping Stool");
+        db.Add("Scenery", "Folding Chair");
+        db.AddVariants("Scenery", "Crate, Small, Closed", "Crate, Metal, Multi", "Crate, Metal, Single", "Crate, Heavy Duty", "Crate, Heavy, Small", "Covenant Crate", "Crate, Half Open", "Crate, Fully Open");
+        db.AddVariants("Scenery", "Sandbag Wall", "Sandbag, Turret Wall", "Sandbag Corner, 45", "Sandbag Corner, 90", "Sandbag Endcap");
+        db.Add("Scenery", "Street Cone");
+        db.AddVariants("Scenery", "Pallet", "Pallet, Large", "Pallet, Metal");
+        db.AddVariants("Structure", "Block, 1x1", "Block, 1x1, Flat", "Block, 1x1, Short", "Block, 1x1, Tall", "Block, 1x1, Tall And Thin", "Block, 1x2", "Block, 1x4", "Block, 2x1, Flat", "Block, 2x2", "Block, 2x2, Flat", "Block, 2x2, Short", "Block, 2x2, Tall", "Block, 2x3", "Block, 2x4", "Block, 3x1, Flat", "Block, 3x3", "Block, 3x3, Flat", "Block, 3x3, Short", "Block, 3x3, Tall", "Block, Large", "Blocker, Hallway", "Door A, Forerunner", "Door B, Forerunner");
+        db.AddVariants("Structure", "Bridge, Small", "Bridge, Medium", "Bridge, Large", "Bridge, XLarge", "Bridge, Diagonal", "Bridge, Diag, Small", "Corner, 45 Degrees", "Corner, 2x2", "Corner, 4x4", "Landing Pad", "Platform, Ramped", "Platform, Ramped, Stone", "Platform, Y", "Platform, Y, Large", "Sniper Nest", "Catwalk, Angled", "Catwalk, Large");
+        db.AddVariants("Structure", "Bunker, Small", "Bunker, Small, Covered", "Bunker, Box");
+        db.AddVariants("Structure", "Antenna, Small", "Antenna, Satellite", "Brace", "Brace, Large", "Brace, Tunnel", "Column", "Column, Stone", "Cover", "Cover, Crenellation", "Cover, Glass", "Railing, Small", "Railing, Medium", "Railing, Long", "Teleporter Frame", "Strut", "Walkway Cover, Short", "Tombstone", "Cover, Large, Stone");
+        db.AddVariants("Structure", "Door", "Door, Double", "Window", "Window, Double", "Wall", "Wall, Double", "Wall, Corner", "Wall, Curved", "Tunnel, Short", "Tunnel, Long", "Wall, Small, Forerunner", "Wall, Large, Forerunner", "Door, Forerunner 1", "Door, Forerunner 2", "Cover, Large");
+        db.AddVariants("Structure", "Bank, 1x1", "Bank, 1x2", "Bank, 2x1", "Bank, 2x2", "Ramp, 1x2", "Ramp, 1x2, Shallow", "Ramp, 2x2", "Ramp, 2x2, Steep", "Ramp, Bridge, Small", "Ramp, Bridge, Medium", "Ramp, Bridge, Large", "Ramp, Stunt");
+        db.Add("Structure", "Grid");
+        db.Add("Structure", "Block, 2x2, Invisible");
+        db.Add("Structure", "Block, 1x1, Invisible");
+        db.Add("Structure", "Block, 2x2x2, Invisible");
+        db.Add("Structure", "Block, 4x4x2, Invisible");
+        db.Add("Structure", "Block, 4x4x4, Invisible");
+        db.Add("Structure", "Block, 2x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Flat, Invisible");
+        db.Add("Structure", "Block, 1x1, Small, Invisible");
+        db.Add("Structure", "Block, 2x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x2, Flat, Invisible");
+        db.Add("Structure", "Block, 4x4, Flat, Invisible");
+        db.Add("Equipment", "Health Cabinet");
         return db;
     }
 }

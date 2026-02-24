@@ -506,13 +506,59 @@ public class MccLoadTest
         Assert.Equal("Assault Rifle", variant.Palette.GetQuotaName(0));
         Assert.Equal("Weapon", variant.Palette.GetCategory(0));
 
-        // Print first 10 resolved quota names
-        Console.WriteLine("\nFirst 10 resolved quotas:");
-        for (int i = 0; i < Math.Min(10, variant.TagIndex.Count); i++)
+        // Print all quotas that still show as "reach_object"
+        Console.WriteLine("\nUnresolved quotas (reach_object):");
+        for (int i = 0; i < variant.TagIndex.Count; i++)
         {
             var entry = variant.TagIndex[i];
-            if (entry.Tag != null)
-                Console.WriteLine($"  [{i}] {entry.Tag.Class}: {entry.Tag.Path} (count={entry.CountOnMap})");
+            if (entry.Tag != null && entry.Tag.Class == "reach_object")
+                Console.WriteLine($"  [{i}] {entry.Tag.Path} (min={entry.RunTimeMinimum} max={entry.RunTimeMaximum} count={entry.CountOnMap})");
+        }
+
+        // Print total quota count vs palette size
+        int totalWithTags = variant.TagIndex.Count(e => e.Tag != null);
+        Console.WriteLine($"\nTotal quotas with tags: {totalWithTags}");
+        Console.WriteLine($"Palette size: {variant.Palette.GetQuotaName(143) ?? "null"} at index 143");
+        Console.WriteLine($"Palette size: {variant.Palette.GetQuotaName(144) ?? "null"} at index 144");
+
+        variant.CloseIO();
+    }
+
+    [Fact]
+    public void DiagnoseCliffhanger()
+    {
+        string path = "/run/media/james/m2-ssd/Program Files (x86)/Steam/steamapps/common/Halo The Master Chief Collection/haloreach/hopper_map_variants/cliffhanger.mvar";
+        if (!File.Exists(path))
+        {
+            Console.WriteLine("SKIP: cliffhanger.mvar not found");
+            return;
+        }
+
+        var blf = new BlfFile(path);
+        var variant = new MccReachMapVariant(blf);
+
+        Console.WriteLine($"Name: '{variant.VariantName}'");
+        Console.WriteLine($"MapId: {variant.MapId}");
+        Console.WriteLine($"Map: {ReachMapDefinitions.GetMapName(variant.MapId) ?? "unknown"}");
+        Console.WriteLine($"Palette: {(variant.Palette != null ? "loaded" : "NULL")}");
+
+        int totalQuotas = variant.TagIndex.Count(e => e.Ident >= 0);
+        Console.WriteLine($"Total quotas: {totalQuotas}");
+
+        Console.WriteLine("\nAll quotas:");
+        for (int i = 0; i < variant.TagIndex.Count; i++)
+        {
+            var entry = variant.TagIndex[i];
+            if (entry.Tag == null || entry.Ident < 0) continue;
+            Console.WriteLine($"  [{i}] class={entry.Tag.Class} path={entry.Tag.Path} count={entry.CountOnMap}");
+        }
+
+        Console.WriteLine("\nUnresolved (reach_object):");
+        for (int i = 0; i < variant.TagIndex.Count; i++)
+        {
+            var entry = variant.TagIndex[i];
+            if (entry.Tag != null && entry.Tag.Class == "reach_object")
+                Console.WriteLine($"  [{i}] {entry.Tag.Path}");
         }
 
         variant.CloseIO();
@@ -546,7 +592,9 @@ public class MccLoadTest
                 var variant = new MccReachMapVariant(blf);
                 int activePlacements = variant.PlacementChunks.Count(p => p.TagsIndex >= 0);
                 string mapName = ReachMapDefinitions.GetMapName(variant.MapId) ?? $"MapId={variant.MapId}";
-                Console.WriteLine($"  OK: {Path.GetFileName(file)} -> '{variant.VariantName}' ({mapName}) Placements={activePlacements} Budget={variant.CurrentBudget}/{variant.MaximumBudget}");
+                int totalQuotas = variant.TagIndex.Count(e => e.Tag != null);
+                int unresolved = variant.TagIndex.Count(e => e.Tag != null && e.Tag.Class == "reach_object");
+                Console.WriteLine($"  OK: {Path.GetFileName(file)} -> '{variant.VariantName}' ({mapName}) Quotas={totalQuotas} Unresolved={unresolved} Placements={activePlacements}");
                 variant.CloseIO();
                 loaded++;
             }
