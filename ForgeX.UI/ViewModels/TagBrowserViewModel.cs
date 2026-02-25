@@ -280,7 +280,7 @@ public partial class TagBrowserViewModel : ViewModelBase
             IsTagSelected = true;
 
             Ident = entry.Ident.ToString();
-            HasBypassLimit = IsXbox360H3 && (entry.Ident & 0x10000000) != 0;
+            HasBypassLimit = IsXbox360H3 && entry.Tag != null && entry.Tag.Ident != entry.Ident;
             BypassLimitLabel = HasBypassLimit
                 ? "Forge Limit Bypass: Enabled" : "Forge Limit Bypass: Disabled";
             RuntimeMin = entry.RunTimeMinimum.ToString();
@@ -564,7 +564,7 @@ public partial class TagBrowserViewModel : ViewModelBase
             IsTagSelected = true;
 
             Ident = entry.Ident.ToString();
-            HasBypassLimit = IsXbox360H3 && (entry.Ident & 0x10000000) != 0;
+            HasBypassLimit = IsXbox360H3 && entry.Tag != null && entry.Tag.Ident != entry.Ident;
             BypassLimitLabel = HasBypassLimit
                 ? "Forge Limit Bypass: Enabled" : "Forge Limit Bypass: Disabled";
             RuntimeMin = entry.RunTimeMinimum.ToString();
@@ -659,7 +659,7 @@ public partial class TagBrowserViewModel : ViewModelBase
     {
         if (entry.Tag == null) return "";
         string name = entry.Tag.Path;
-        if (IsXbox360H3 && (entry.Ident & 0x10000000) != 0)
+        if (IsXbox360H3 && entry.Tag != null && entry.Tag.Ident != entry.Ident)
             name += " (bypassed)";
         return name;
     }

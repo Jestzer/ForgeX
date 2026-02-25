@@ -15,12 +15,16 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        // Restore saved window size
+        // Restore saved window size and tags panel width
         var settings = WindowSettingsService.Load();
         if (settings.Width > 0 && settings.Height > 0)
         {
             Width = settings.Width;
             Height = settings.Height;
+        }
+        if (settings.TagsPanelWidth > 0)
+        {
+            TagsEditorGrid.ColumnDefinitions[0].Width = new GridLength(settings.TagsPanelWidth);
         }
 
         DataContextChanged += (_, _) =>
@@ -41,13 +45,21 @@ public partial class MainWindow : Window
 
     private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)
     {
-        // Save window size (use ClientSize for accurate content area, or Bounds for full window)
+        // Save window size and tags panel width
         if (WindowState == WindowState.Normal)
         {
+            // Read the column's GridLength — the splitter sets this to an absolute pixel value.
+            // If the editor grid was never visible, preserve the previously saved value.
+            var colWidth = TagsEditorGrid.ColumnDefinitions[0].Width;
+            double tagsPanelWidth = colWidth.IsAbsolute ? colWidth.Value : 0;
+            if (tagsPanelWidth <= 0)
+                tagsPanelWidth = WindowSettingsService.Load().TagsPanelWidth;
+
             WindowSettingsService.Save(new WindowSettings
             {
                 Width = Width,
-                Height = Height
+                Height = Height,
+                TagsPanelWidth = tagsPanelWidth
             });
         }
 

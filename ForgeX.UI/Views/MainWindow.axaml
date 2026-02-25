@@ -5,7 +5,7 @@
         x:DataType="vm:MainWindowViewModel"
         Title="{Binding WindowTitle}"
         Icon="avares://ForgeX.UI/Assets/icon.png"
-        Width="1050" Height="800"
+        Width="1200" Height="800"
         MinWidth="1050" MinHeight="800"
         Background="#FF2D2B2B">
 
@@ -129,7 +129,12 @@
         </Border>
 
         <!-- Main Content: TreeView left, Editor panels right -->
-        <Grid ColumnDefinitions="280,6,*" Margin="8">
+        <Grid x:Name="TagsEditorGrid" Margin="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="280" MinWidth="200" />
+                <ColumnDefinition Width="6" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
             <!-- Tag TreeView -->
             <Border Grid.Column="0" Background="#FF3A3838" BorderBrush="#FF1E699B" BorderThickness="2"
                     CornerRadius="6" Padding="6" ClipToBounds="True">
