@@ -8445,19 +8445,31 @@ public class UsermapLoadTest
                 Console.WriteLine($"VariantFormat: {blf.VariantFormat}");
                 Assert.Equal(BlfVariantFormat.UnpackedMapv, blf.VariantFormat);
 
-                // Should load via MccMapVariant (unpacked mapv path)
-                var variant = new MccMapVariant(blf);
+                // Should load via MccMapVariant (unpacked mapv path) with Xbox 360 tag databases
+                var variant = new MccMapVariant(blf, xbox360: true);
                 Console.WriteLine($"Variant Name: '{variant.VariantName}'");
                 Console.WriteLine($"Author: '{variant.MapAuthor}'");
                 Console.WriteLine($"Map ID: {variant.MapId}");
                 Console.WriteLine($"Max Budget: {variant.MaximumBudget}");
                 Console.WriteLine($"Current Budget: {variant.CurrentBudget}");
                 Console.WriteLine($"Placements: {variant.PlacementChunks.Count(c => c.TagsIndex >= 0)}");
-                Console.WriteLine($"Quotas: {variant.TagIndex.Count(e => e.Tag != null)}");
+                int matched = variant.TagIndex.Count(e => e.Tag != null);
+                int unmatched = variant.TagIndex.Count(e => e.Tag == null && e.Ident != 0 && e.Ident != -1);
+                Console.WriteLine($"Quotas (matched): {matched}");
+                Console.WriteLine($"Quotas (unmatched): {unmatched}");
+
+                // List all resolved tags
+                foreach (var entry in variant.TagIndex.Where(e => e.Tag != null))
+                    Console.WriteLine($"  {entry.Ident:X8} → {entry.Tag!.Class} {entry.Tag.Path}");
+                foreach (var entry in variant.TagIndex.Where(e => e.Tag == null && e.Ident != 0 && e.Ident != -1))
+                    Console.WriteLine($"  {(uint)entry.Ident:X8} → UNMATCHED");
 
                 Assert.False(string.IsNullOrEmpty(variant.VariantName));
                 Assert.NotEqual(0, variant.MapId);
                 Assert.True(variant.PlacementChunks.Count(c => c.TagsIndex >= 0) > 0);
+
+                // With Xbox 360 tag databases + bit-28 toggle, all entries should resolve
+                Assert.True(matched > 0, "Expected matched tag index entries");
             }
             finally
             {

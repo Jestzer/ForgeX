@@ -6,6 +6,9 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\Maps\*.xml" />
+    <EmbeddedResource Include="Resources\Maps_X360\*.xml" />
+    <EmbeddedResource Include="Resources\Reach_X360\*.xml" />
+    <EmbeddedResource Include="Resources\Halo4_X360\*.xml" />
   </ItemGroup>
 
 </Project>

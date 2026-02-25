@@ -16,9 +16,15 @@ public class TagDatabase
     public int TagCount => _tags.Count;
     public string? MapName { get; private set; }
 
-    public TagDatabase(int mapId)
+    public bool IsXbox360 { get; }
+
+    public TagDatabase(int mapId, bool xbox360 = false)
     {
-        string? xml = MapDefinitions.GetMapXml(mapId);
+        IsXbox360 = xbox360;
+
+        // For Xbox 360, try the X360-specific database first, fall back to MCC
+        string? xml = xbox360 ? MapDefinitions.GetMapXml(mapId, xbox360: true) : null;
+        xml ??= MapDefinitions.GetMapXml(mapId);
         if (xml != null)
             ParseXml(xml);
 
@@ -95,11 +101,35 @@ public class TagDatabase
 
     public Tag? FindTag(int ident)
     {
+        // 1. Exact match in this map's database
         for (int i = 0; i < _tags.Count; i++)
         {
             if (_tags[i].Ident == ident)
                 return _tags[i];
         }
+
+        if (ident == 0 || ident == -1)
+            return null;
+
+        // 2. Xbox 360 "BypassLimit" toggle: bit 28 is flipped (0xE... ↔ 0xF...).
+        //    Try the original ident with bit 28 toggled.
+        int toggled = ident ^ 0x10000000;
+        for (int i = 0; i < _tags.Count; i++)
+        {
+            if (_tags[i].Ident == toggled)
+                return _tags[i];
+        }
+
+        // 3. Exact match across ALL map databases (catches cross-map injected objects)
+        var crossMap = CrossMapIndex.FindTag(ident, IsXbox360);
+        if (crossMap != null)
+            return crossMap;
+
+        // 4. Cross-map with bit-28 toggle
+        crossMap = CrossMapIndex.FindTag(toggled, IsXbox360);
+        if (crossMap != null)
+            return crossMap;
+
         return null;
     }
 
@@ -151,4 +181,44 @@ public class PaletteEntry
 {
     public int Ident { get; set; }
     public string Name { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Lazy-loaded index of all tags across every supported Halo 3 map.
+/// Maintains separate MCC and Xbox 360 indexes.
+/// Used to resolve cross-map injected objects (e.g. elephants on Sandtrap).
+/// </summary>
+internal static class CrossMapIndex
+{
+    private static Dictionary<int, Tag>? _mccIndex;
+    private static Dictionary<int, Tag>? _x360Index;
+
+    public static Tag? FindTag(int ident, bool xbox360)
+    {
+        if (xbox360)
+        {
+            _x360Index ??= BuildIndex(xbox360: true);
+            return _x360Index.TryGetValue(ident, out var tag) ? tag : null;
+        }
+
+        _mccIndex ??= BuildIndex(xbox360: false);
+        return _mccIndex.TryGetValue(ident, out var tag2) ? tag2 : null;
+    }
+
+    private static Dictionary<int, Tag> BuildIndex(bool xbox360)
+    {
+        var index = new Dictionary<int, Tag>();
+        foreach (int mapId in MapDefinitions.GetSupportedMapIds())
+        {
+            string? xml = MapDefinitions.GetMapXml(mapId, xbox360);
+            if (xml == null) continue;
+
+            var db = new TagDatabase(xml);
+            foreach (var tag in db.AllTags)
+            {
+                index.TryAdd(tag.Ident, tag);
+            }
+        }
+        return index;
+    }
 }

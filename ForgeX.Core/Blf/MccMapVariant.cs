@@ -77,16 +77,19 @@ public class MccMapVariant : IMapVariantData
     private const int TagIndexEntrySize = 12;
     private const int TagIndexCount = 256;
 
-    public MccMapVariant(string filePath) : this(new BlfFile(filePath), filePath)
+    public bool IsXbox360Tags { get; }
+
+    public MccMapVariant(string filePath, bool xbox360 = false) : this(new BlfFile(filePath), filePath, xbox360)
     {
     }
 
-    public MccMapVariant(BlfFile blfFile) : this(blfFile, blfFile.FilePath)
+    public MccMapVariant(BlfFile blfFile, bool xbox360 = false) : this(blfFile, blfFile.FilePath, xbox360)
     {
     }
 
-    private MccMapVariant(BlfFile blfFile, string filePath)
+    private MccMapVariant(BlfFile blfFile, string filePath, bool xbox360)
     {
+        IsXbox360Tags = xbox360;
         _blfFile = blfFile;
 
         switch (_blfFile.VariantFormat)
@@ -156,7 +159,7 @@ public class MccMapVariant : IMapVariantData
         CurrentBudget = reader.ReadSingle();
 
         // Load tag database for this map
-        Tags = new TagDatabase(MapId);
+        Tags = new TagDatabase(MapId, xbox360: IsXbox360Tags);
 
         // Read 640 placement chunks (same layout as Xbox 360 but with forward/up vectors)
         PlacementChunks = new List<PlacementChunk>(PlacementCount);
@@ -295,7 +298,7 @@ public class MccMapVariant : IMapVariantData
         CurrentBudget = bits.ReadRawFloat();             // 32-bit raw float
 
         // Load tag database
-        Tags = new TagDatabase(MapId);
+        Tags = new TagDatabase(MapId, xbox360: IsXbox360Tags);
 
         // === variant_objects ===
         // The packed format iterates numberOfVariantObjects times (not always 640).

@@ -89,8 +89,8 @@ public class MapVariant : IMapVariantData
         // Skip 8 bytes
         Reader.BaseStream.Position += 8;
 
-        // Load tag definitions for this map
-        Tags = new TagDatabase(MapId);
+        // Load tag definitions for this map (Xbox 360-specific database)
+        Tags = new TagDatabase(MapId, xbox360: true);
 
         // Read 640 placement chunks
         PlacementChunks = new List<PlacementChunk>(640);

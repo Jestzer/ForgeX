@@ -42,6 +42,8 @@ public partial class MainWindowViewModel : ViewModelBase
     /// </summary>
     public Action? ShowAboutDialog { get; set; }
 
+
+
     public MainWindowViewModel()
     {
         LoadRecentFiles();
@@ -105,7 +107,7 @@ public partial class MainWindowViewModel : ViewModelBase
                     if (blf.VariantFormat == BlfVariantFormat.UnpackedMapv)
                     {
                         // Halo 3 Xbox 360 BLF with unpacked mapv chunk
-                        _variant = new MccMapVariant(blf);
+                        _variant = new MccMapVariant(blf, xbox360: true);
                     }
                     else
                     {
@@ -145,7 +147,10 @@ public partial class MainWindowViewModel : ViewModelBase
             }
 
             MapHeader.LoadFrom(_variant);
+            TagBrowser.IsXbox360H3 = IsXbox360Format &&
+                _variant is MapVariant or MccMapVariant;
             TagBrowser.Load(_variant);
+            TagBrowser.HasMccPhysics = TagBrowser.IsMcc && !TagBrowser.IsXbox360H3;
 
             IsFileLoaded = true;
             string formatLabel = IsXbox360Format

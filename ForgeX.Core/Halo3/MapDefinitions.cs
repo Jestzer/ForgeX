@@ -20,11 +20,11 @@ public static class MapDefinitions
         { 350, "salvation" },       // Epitaph (internal: salvation)
         { 360, "snowbound" },       // Snowbound
         { 380, "chill" },           // Narrows (internal: chill)
-        { 390, "shrine" },          // The Pit (internal: shrine)
-        { 400, "sidewinder" },      // Sandtrap (internal: sidewinder)
+        { 390, "cyberdyne" },       // The Pit (internal: cyberdyne)
+        { 400, "shrine" },          // Sandtrap (internal: shrine)
         { 410, "bunkerworld" },     // Standoff (internal: bunkerworld)
         { 440, "docks" },           // Longshore (internal: docks)
-        { 470, "cyberdyne" },       // Avalanche (internal: cyberdyne)
+        { 470, "sidewinder" },      // Avalanche (internal: sidewinder)
         { 480, "warehouse" },       // Foundry (internal: warehouse)
         { 490, "descent" },         // Assembly (internal: descent)
         { 500, "spacecamp" },       // Orbital (internal: spacecamp)
@@ -70,13 +70,14 @@ public static class MapDefinitions
         { 740, "Citadel" }
     };
 
-    public static string? GetMapXml(int mapId)
+    public static string? GetMapXml(int mapId, bool xbox360 = false)
     {
         if (!MapIdToResource.TryGetValue(mapId, out var resourceName))
             return null;
 
         var assembly = typeof(MapDefinitions).Assembly;
-        var fullName = $"ForgeX.Core.Resources.Maps.{resourceName}.xml";
+        var prefix = xbox360 ? "ForgeX.Core.Resources.Maps_X360" : "ForgeX.Core.Resources.Maps";
+        var fullName = $"{prefix}.{resourceName}.xml";
         using var stream = assembly.GetManifestResourceStream(fullName);
         if (stream == null)
             return null;

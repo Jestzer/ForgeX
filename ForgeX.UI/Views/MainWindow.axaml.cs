@@ -4,6 +4,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
+using ForgeX.UI.Services;
 using ForgeX.UI.ViewModels;
 
 namespace ForgeX.UI.Views;
@@ -13,6 +14,14 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
+        // Restore saved window size
+        var settings = WindowSettingsService.Load();
+        if (settings.Width > 0 && settings.Height > 0)
+        {
+            Width = settings.Width;
+            Height = settings.Height;
+        }
 
         DataContextChanged += (_, _) =>
         {
@@ -28,8 +37,20 @@ public partial class MainWindow : Window
         Closing += OnWindowClosing;
     }
 
+
+
     private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)
     {
+        // Save window size (use ClientSize for accurate content area, or Bounds for full window)
+        if (WindowState == WindowState.Normal)
+        {
+            WindowSettingsService.Save(new WindowSettings
+            {
+                Width = Width,
+                Height = Height
+            });
+        }
+
         if (DataContext is not MainWindowViewModel vm) return;
         if (!vm.HasUnsavedChanges) return;
 

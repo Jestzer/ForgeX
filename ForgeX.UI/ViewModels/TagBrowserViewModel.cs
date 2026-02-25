@@ -38,6 +38,10 @@ public partial class TagBrowserViewModel : ViewModelBase
 
     // TreeView data
     [ObservableProperty] private ObservableCollection<TagClassNode> _tagTree = new();
+    private List<TagClassNode>? _fullClassNodes; // unfiltered class nodes for search
+
+    // Search
+    [ObservableProperty] private string _searchText = "";
 
     // Tag class/path combo boxes
     [ObservableProperty] private ObservableCollection<string> _tagClasses = new();
@@ -56,6 +60,10 @@ public partial class TagBrowserViewModel : ViewModelBase
     [ObservableProperty] private bool _isTagSelected;
     [ObservableProperty] private bool _canWrite;
     [ObservableProperty] private bool _isMcc;
+    [ObservableProperty] private bool _isXbox360H3;
+    [ObservableProperty] private bool _hasMccPhysics;
+    [ObservableProperty] private bool _hasBypassLimit;
+    [ObservableProperty] private string _bypassLimitLabel = "Forge Limit Bypass: Disabled";
 
     // Placement list for selected tag
     [ObservableProperty] private ObservableCollection<string> _placements = new();
@@ -116,7 +124,19 @@ public partial class TagBrowserViewModel : ViewModelBase
             for (int i = 0; i < entryCount; i++)
             {
                 var entry = variant.TagIndex[i];
-                if (entry.Tag == null) continue;
+
+                // Create synthetic Tag for unmatched entries so they appear in the tree
+                if (entry.Tag == null)
+                {
+                    if (entry.Ident == 0 || entry.Ident == -1) continue;
+                    entry.Tag = new Tag
+                    {
+                        Class = "unknown",
+                        Path = $"0x{(uint)entry.Ident:X8}",
+                        Ident = entry.Ident,
+                        TagsIndex = i
+                    };
+                }
 
                 if (!classNodes.TryGetValue(entry.Tag.Class, out var classNode))
                 {
@@ -124,12 +144,13 @@ public partial class TagBrowserViewModel : ViewModelBase
                     classNodes[entry.Tag.Class] = classNode;
                 }
 
+                string displayName = GetTagDisplayName(entry);
                 string key = $"{entry.Tag.Class}/{entry.Tag.Path}/{entry.Tag.TagsIndex}";
                 if (!addedPaths.Contains(key))
                 {
                     classNode.Children.Add(new TagClassNode
                     {
-                        ClassName = entry.Tag.Path,
+                        ClassName = displayName,
                         IsLeaf = true,
                         TagPath = entry.Tag.Path,
                         TagsIndex = entry.Tag.TagsIndex,
@@ -141,19 +162,10 @@ public partial class TagBrowserViewModel : ViewModelBase
 
             if (classNodes.Count == 0) return;
 
-            // Add root node for map name
-            string mapName = variant.Tags?.MapName
-                ?? Halo4MapDefinitions.GetMapName(variant.MapId)
-                ?? ReachMapDefinitions.GetMapName(variant.MapId)
-                ?? "Map";
-            var root = new TagClassNode
-            {
-                ClassName = mapName,
-                IsRoot = true
-            };
+            // Add tag class nodes directly (no root wrapper — map name is in the header)
             foreach (var cn in classNodes.Values.OrderBy(c => c.ClassName))
-                root.Children.Add(cn);
-            TagTree.Add(root);
+                TagTree.Add(cn);
+            _fullClassNodes = classNodes.Values.OrderBy(c => c.ClassName).ToList();
 
             // Load tag class combo box
             TagClasses.Clear();
@@ -171,6 +183,46 @@ public partial class TagBrowserViewModel : ViewModelBase
         finally
         {
             _isLoadingSelection = false;
+        }
+    }
+
+    partial void OnSearchTextChanged(string value)
+    {
+        if (_fullClassNodes == null) return;
+
+        TagTree.Clear();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            foreach (var cn in _fullClassNodes)
+                TagTree.Add(cn);
+            return;
+        }
+
+        var filter = value.Trim();
+        foreach (var classNode in _fullClassNodes)
+        {
+            bool classMatches = classNode.ClassName.Contains(filter, StringComparison.OrdinalIgnoreCase);
+
+            var matchingChildren = new List<TagClassNode>();
+            foreach (var leaf in classNode.Children)
+            {
+                if (classMatches ||
+                    leaf.ClassName.Contains(filter, StringComparison.OrdinalIgnoreCase))
+                {
+                    matchingChildren.Add(leaf);
+                }
+            }
+
+            if (matchingChildren.Count > 0)
+            {
+                var filteredClass = new TagClassNode
+                {
+                    ClassName = classNode.ClassName
+                };
+                foreach (var child in matchingChildren)
+                    filteredClass.Children.Add(child);
+                TagTree.Add(filteredClass);
+            }
         }
     }
 
@@ -228,6 +280,9 @@ public partial class TagBrowserViewModel : ViewModelBase
             IsTagSelected = true;
 
             Ident = entry.Ident.ToString();
+            HasBypassLimit = IsXbox360H3 && (entry.Ident & 0x10000000) != 0;
+            BypassLimitLabel = HasBypassLimit
+                ? "Forge Limit Bypass: Enabled" : "Forge Limit Bypass: Disabled";
             RuntimeMin = entry.RunTimeMinimum.ToString();
             RuntimeMax = entry.RunTimeMaximum.ToString();
             CountOnMap = entry.CountOnMap.ToString();
@@ -441,6 +496,172 @@ public partial class TagBrowserViewModel : ViewModelBase
         {
             _isLoadingSelection = false;
         }
+    }
+
+    [RelayCommand]
+    private void BypassLimit()
+    {
+        if (SelectedEntry == null || _variant == null || !IsXbox360H3) return;
+
+        int newIdent = SelectedEntry.Ident ^ 0x10000000;
+
+        // Check if another tag entry already has the target ident
+        var targetEntry = _variant.TagIndex.FirstOrDefault(e =>
+            e != SelectedEntry && e.Ident == newIdent);
+
+        TagIndexEntry entryToSelect;
+
+        if (targetEntry != null)
+        {
+            // Merge: move all placements from current entry to the target entry
+            int targetIndex = _variant.TagIndex.IndexOf(targetEntry);
+            foreach (var chunk in SelectedEntry.PlacedItems)
+            {
+                chunk.TagsIndex = targetIndex;
+                chunk.Entry = targetEntry;
+                targetEntry.PlacedItems.Add(chunk);
+            }
+            targetEntry.CountOnMap = (byte)targetEntry.PlacedItems.Count;
+
+            // Clear the old entry
+            SelectedEntry.PlacedItems.Clear();
+            SelectedEntry.CountOnMap = 0;
+            SelectedEntry.Ident = 0;
+
+            entryToSelect = targetEntry;
+        }
+        else
+        {
+            // No merge needed — just toggle the ident
+            SelectedEntry.Ident = newIdent;
+
+            // Re-resolve the tag name from the database with the new ident
+            if (_variant.Tags != null)
+            {
+                var resolved = _variant.Tags.FindTag(newIdent);
+                if (resolved != null)
+                    SelectedEntry.Tag = resolved;
+            }
+
+            entryToSelect = SelectedEntry;
+        }
+
+        RebuildTree();
+        MarkDirty?.Invoke();
+        LoadEntryIntoUI(entryToSelect);
+    }
+
+    /// <summary>
+    /// Directly loads a TagIndexEntry's data into all UI fields without going through FindTagIndexEntry.
+    /// Used after operations like bypass toggle that change idents and rebuild the tree.
+    /// </summary>
+    private void LoadEntryIntoUI(TagIndexEntry entry)
+    {
+        _isLoadingSelection = true;
+        try
+        {
+            SelectedEntry = entry;
+            IsTagSelected = true;
+
+            Ident = entry.Ident.ToString();
+            HasBypassLimit = IsXbox360H3 && (entry.Ident & 0x10000000) != 0;
+            BypassLimitLabel = HasBypassLimit
+                ? "Forge Limit Bypass: Enabled" : "Forge Limit Bypass: Disabled";
+            RuntimeMin = entry.RunTimeMinimum.ToString();
+            RuntimeMax = entry.RunTimeMaximum.ToString();
+            CountOnMap = entry.CountOnMap.ToString();
+            DesignTimeMax = entry.DesignTimeMaximum.ToString();
+            Cost = entry.Cost.ToString();
+
+            if (entry.Tag != null)
+            {
+                SelectedTagClass = entry.Tag.Class;
+                SelectedTagPath = entry.Tag.Path;
+            }
+
+            Placements.Clear();
+            for (int i = 0; i < entry.PlacedItems.Count; i++)
+                Placements.Add(GetPlacementLabel(i, entry.PlacedItems[i]));
+
+            if (Placements.Count > 0)
+                SelectedPlacementIndex = 0;
+            else
+                HasSelectedPlacement = false;
+        }
+        finally
+        {
+            _isLoadingSelection = false;
+        }
+    }
+
+    private void RebuildTree()
+    {
+        if (_variant == null) return;
+
+        _isLoadingSelection = true;
+        try
+        {
+            // Rebuild the full tree from scratch
+            var addedPaths = new HashSet<string>();
+            var classNodes = new Dictionary<string, TagClassNode>();
+
+            int entryCount = Math.Min(_variant.TagIndex.Count, 256);
+            for (int i = 0; i < entryCount; i++)
+            {
+                var entry = _variant.TagIndex[i];
+                if (entry.Tag == null)
+                {
+                    if (entry.Ident == 0 || entry.Ident == -1) continue;
+                    entry.Tag = new Tag
+                    {
+                        Class = "unknown",
+                        Path = $"0x{(uint)entry.Ident:X8}",
+                        Ident = entry.Ident,
+                        TagsIndex = i
+                    };
+                }
+
+                if (!classNodes.TryGetValue(entry.Tag.Class, out var classNode))
+                {
+                    classNode = new TagClassNode { ClassName = entry.Tag.Class };
+                    classNodes[entry.Tag.Class] = classNode;
+                }
+
+                string displayName = GetTagDisplayName(entry);
+                string key = $"{entry.Tag.Class}/{entry.Tag.Path}/{entry.Tag.TagsIndex}";
+                if (!addedPaths.Contains(key))
+                {
+                    classNode.Children.Add(new TagClassNode
+                    {
+                        ClassName = displayName,
+                        IsLeaf = true,
+                        TagPath = entry.Tag.Path,
+                        TagsIndex = entry.Tag.TagsIndex,
+                        TagClass = entry.Tag.Class
+                    });
+                    addedPaths.Add(key);
+                }
+            }
+
+            _fullClassNodes = classNodes.Values.OrderBy(c => c.ClassName).ToList();
+            SearchText = "";
+            TagTree.Clear();
+            foreach (var cn in _fullClassNodes)
+                TagTree.Add(cn);
+        }
+        finally
+        {
+            _isLoadingSelection = false;
+        }
+    }
+
+    private string GetTagDisplayName(TagIndexEntry entry)
+    {
+        if (entry.Tag == null) return "";
+        string name = entry.Tag.Path;
+        if (IsXbox360H3 && (entry.Ident & 0x10000000) != 0)
+            name += " (bypassed)";
+        return name;
     }
 
     private string GetPlacementLabel(int index, PlacementChunk chunk)

@@ -119,7 +119,7 @@ public class MccLoadTest
 
             int activeTagEntries = variant.TagIndex.Count(e => e.Tag != null);
             Console.WriteLine($"Active Tag Index Entries: {activeTagEntries}");
-            Assert.Equal(120, activeTagEntries);
+            Assert.Equal(121, activeTagEntries);
 
             variant.CloseIO();
         }

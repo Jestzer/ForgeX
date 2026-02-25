@@ -6,7 +6,7 @@
         Title="{Binding WindowTitle}"
         Icon="avares://ForgeX.UI/Assets/icon.png"
         Width="1050" Height="800"
-        MinWidth="900" MinHeight="700"
+        MinWidth="1050" MinHeight="800"
         Background="#FF2D2B2B">
 
     <DockPanel>
@@ -135,6 +135,11 @@
                     CornerRadius="6" Padding="6" ClipToBounds="True">
                 <DockPanel>
                     <TextBlock DockPanel.Dock="Top" Text="Tags" FontWeight="Bold" Foreground="White" FontSize="14" Margin="0,0,0,6" />
+                    <TextBox DockPanel.Dock="Top" Text="{Binding TagBrowser.SearchText}"
+                             Watermark="Search tags..." Margin="0,0,0,6"
+                             Background="#FF2D2B2B" Foreground="White"
+                             BorderBrush="#FF555555" BorderThickness="1"
+                             Padding="6,4" FontSize="12" />
                     <TreeView x:Name="TagTreeView"
                               ItemsSource="{Binding TagBrowser.TagTree}"
                               SelectionChanged="OnTagTreeSelectionChanged"
@@ -176,7 +181,7 @@
                                       SelectedItem="{Binding TagBrowser.SelectedTagPath}" HorizontalAlignment="Stretch" Margin="0,2,0,0" />
 
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="Ident:" Foreground="White" VerticalAlignment="Center" Margin="0,2,6,0" />
-                            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding TagBrowser.Ident}" Margin="0,2,0,0" />
+                            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding TagBrowser.Ident}" Margin="0,2,0,0" MinWidth="80" />
                             <TextBlock Grid.Row="2" Grid.Column="3" Text="Cost:" Foreground="White" VerticalAlignment="Center" Margin="0,2,6,0" />
                             <TextBox Grid.Row="2" Grid.Column="4" Text="{Binding TagBrowser.Cost}" Margin="0,2,0,0" />
 
@@ -191,6 +196,14 @@
                                 <TextBox Text="{Binding TagBrowser.DesignTimeMax}" Width="60" />
                             </StackPanel>
                         </Grid>
+
+                        <Button Command="{Binding TagBrowser.BypassLimitCommand}"
+                                IsVisible="{Binding TagBrowser.IsXbox360H3}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                Background="#FF464646" Foreground="#FFFFCC00" FontSize="12" FontWeight="Bold"
+                                BorderBrush="#FFFFCC00" BorderThickness="1"
+                                CornerRadius="4" Padding="8,4" Margin="0,4,0,0"
+                                Content="{Binding TagBrowser.BypassLimitLabel}" />
                     </StackPanel>
                 </Border>
 
@@ -257,7 +270,7 @@
                                           IsVisible="{Binding TagBrowser.IsMcc}" />
                             </StackPanel>
 
-                            <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding TagBrowser.IsMcc}">
+                            <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding TagBrowser.HasMccPhysics}">
                                 <TextBlock Text="Physics:" Foreground="White" VerticalAlignment="Center" />
                                 <ComboBox SelectedIndex="{Binding TagBrowser.PlacementPhysicsMode}" MinWidth="100">
                                     <ComboBoxItem Content="Normal" />
