@@ -143,6 +143,7 @@ public partial class TagBrowserViewModel : ViewModelBase
 
             // Add root node for map name
             string mapName = variant.Tags?.MapName
+                ?? Halo4MapDefinitions.GetMapName(variant.MapId)
                 ?? ReachMapDefinitions.GetMapName(variant.MapId)
                 ?? "Map";
             var root = new TagClassNode

@@ -97,15 +97,25 @@ public partial class MainWindowViewModel : ViewModelBase
 
                 if (isReachBlf)
                 {
-                    // Reach/H4 Xbox 360: sandbox.map is a BLF file with packed mvar bitstream
+                    // Xbox 360: sandbox.map is a BLF file — detect format from chunks
                     _reachStfsTempPath = Path.GetTempFileName() + ".mvar";
                     File.WriteAllBytes(_reachStfsTempPath, sandboxData);
                     var blf = new BlfFile(_reachStfsTempPath);
-                    short stfsMvarVersion = blf.GetMvarMajorVersion();
-                    if (stfsMvarVersion == 50)
-                        _variant = new MccHalo4MapVariant(blf);
+
+                    if (blf.VariantFormat == BlfVariantFormat.UnpackedMapv)
+                    {
+                        // Halo 3 Xbox 360 BLF with unpacked mapv chunk
+                        _variant = new MccMapVariant(blf);
+                    }
                     else
-                        _variant = new MccReachMapVariant(blf);
+                    {
+                        // Reach/H4 Xbox 360: packed mvar bitstream
+                        short stfsMvarVersion = blf.GetMvarMajorVersion();
+                        if (stfsMvarVersion == 50)
+                            _variant = new MccHalo4MapVariant(blf);
+                        else
+                            _variant = new MccReachMapVariant(blf);
+                    }
                 }
                 else
                 {
@@ -164,8 +174,9 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
+            // Clean up any partial state from the failed load
+            CloseCurrentFile();
             StatusMessage = $"Error: {ex.Message}";
-            IsFileLoaded = false;
             ShowError?.Invoke("Error Opening File", ex.Message);
         }
     }

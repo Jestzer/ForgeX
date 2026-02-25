@@ -8415,4 +8415,60 @@ public class UsermapLoadTest
 
         Console.WriteLine($"\nFinal: Nitrogen @{pb.BitOffset}  MccH4-equivalent @{mb.BitOffset}");
     }
+
+    [Fact]
+    public void CanLoadHalo3Xbox360BlfUsermap()
+    {
+        string file = "/run/media/james/HDD/Non-work Related/Games/Xbox 360/Soft Mods/Halo 3 Usermaps & Mods/Forge Elephants/usermap0000000052BDB0F51";
+        if (!File.Exists(file)) { Console.WriteLine("SKIP: File not found"); return; }
+
+        var tempFile = Path.GetTempFileName();
+        File.Copy(file, tempFile, true);
+        try
+        {
+            var container = new StfsContainer(tempFile);
+            var sandbox = container.GetEntryByFileName("sandbox.map");
+            Assert.NotNull(sandbox);
+
+            var data = sandbox.GetData();
+            Console.WriteLine($"sandbox.map size: {data.Length}");
+
+            // This is an Xbox 360 H3 STFS container with BLF-wrapped mapv format
+            bool isBlf = data.Length >= 4 && data[0] == 0x5F && data[1] == 0x62 && data[2] == 0x6C && data[3] == 0x66;
+            Assert.True(isBlf, "sandbox.map should be BLF format");
+
+            var tempMvar = Path.GetTempFileName() + ".mvar";
+            File.WriteAllBytes(tempMvar, data);
+            try
+            {
+                var blf = new BlfFile(tempMvar);
+                Console.WriteLine($"VariantFormat: {blf.VariantFormat}");
+                Assert.Equal(BlfVariantFormat.UnpackedMapv, blf.VariantFormat);
+
+                // Should load via MccMapVariant (unpacked mapv path)
+                var variant = new MccMapVariant(blf);
+                Console.WriteLine($"Variant Name: '{variant.VariantName}'");
+                Console.WriteLine($"Author: '{variant.MapAuthor}'");
+                Console.WriteLine($"Map ID: {variant.MapId}");
+                Console.WriteLine($"Max Budget: {variant.MaximumBudget}");
+                Console.WriteLine($"Current Budget: {variant.CurrentBudget}");
+                Console.WriteLine($"Placements: {variant.PlacementChunks.Count(c => c.TagsIndex >= 0)}");
+                Console.WriteLine($"Quotas: {variant.TagIndex.Count(e => e.Tag != null)}");
+
+                Assert.False(string.IsNullOrEmpty(variant.VariantName));
+                Assert.NotEqual(0, variant.MapId);
+                Assert.True(variant.PlacementChunks.Count(c => c.TagsIndex >= 0) > 0);
+            }
+            finally
+            {
+                File.Delete(tempMvar);
+            }
+
+            container.Close();
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
 }
