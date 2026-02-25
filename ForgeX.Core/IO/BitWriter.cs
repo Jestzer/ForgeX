@@ -161,6 +161,22 @@ public class BitWriter
     }
 
     /// <summary>
+    /// Writes exactly <paramref name="bitCount"/> bits from the MSB end of <paramref name="data"/>.
+    /// Used for opaque data sections that may not be byte-aligned.
+    /// </summary>
+    public void WriteRawBits(byte[] data, int bitCount)
+    {
+        int fullBytes = bitCount / 8;
+        int remainingBits = bitCount % 8;
+
+        for (int i = 0; i < fullBytes; i++)
+            WriteInteger(data[i], 8);
+
+        if (remainingBits > 0 && fullBytes < data.Length)
+            WriteInteger((uint)(data[fullBytes] >> (8 - remainingBits)), remainingBits);
+    }
+
+    /// <summary>
     /// Returns the written data as a byte array (trimmed to actual length).
     /// </summary>
     public byte[] ToArray()

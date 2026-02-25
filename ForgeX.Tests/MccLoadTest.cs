@@ -859,4 +859,99 @@ public class MccLoadTest
         if (!anyTested)
             Console.WriteLine("SKIP: No H4 MCC forge canvas .mvar files found");
     }
+
+    [Fact]
+    public void Halo4MccRoundTripWrite()
+    {
+        string path = Path.Combine(H4MccDir, "grifballcourt.mvar");
+        if (!File.Exists(path))
+        {
+            Console.WriteLine("SKIP: H4 MCC test file not found");
+            return;
+        }
+
+        // Load original
+        var tempFile = Path.GetTempFileName() + ".mvar";
+        File.Copy(path, tempFile, true);
+
+        try
+        {
+            var blf = new BlfFile(tempFile);
+            var original = new MccHalo4MapVariant(blf);
+            Assert.True(original.CanWrite);
+
+            // Capture original values
+            string origName = original.VariantName;
+            string origDesc = original.VariantDescription;
+            string origAuthor = original.MapAuthor;
+            int origMapId = original.MapId;
+            float origMaxBudget = original.MaximumBudget;
+            float origCurBudget = original.CurrentBudget;
+            int origPlacementCount = original.PlacementChunks.Count(p => p.TagsIndex >= 0);
+            int origQuotaCount = original.TagIndex.Count;
+
+            // Capture original raw mvar chunk for byte-level comparison
+            byte[] origMvar = blf.GetChunk("mvar")!.Data;
+
+            // Save (round-trip)
+            original.SaveAll();
+
+            // Reload from saved file
+            var blf2 = new BlfFile(tempFile);
+            var reloaded = new MccHalo4MapVariant(blf2);
+
+            // Verify all fields match
+            Assert.Equal(origName, reloaded.VariantName);
+            Assert.Equal(origDesc, reloaded.VariantDescription);
+            Assert.Equal(origAuthor, reloaded.MapAuthor);
+            Assert.Equal(origMapId, reloaded.MapId);
+            Assert.Equal(origMaxBudget, reloaded.MaximumBudget);
+            Assert.Equal(origCurBudget, reloaded.CurrentBudget);
+            Assert.Equal(origPlacementCount,
+                reloaded.PlacementChunks.Count(p => p.TagsIndex >= 0));
+            Assert.Equal(origQuotaCount, reloaded.TagIndex.Count);
+
+            // Verify placement positions match (within quantization tolerance)
+            var origPlacements = original.PlacementChunks.Where(p => p.TagsIndex >= 0).ToList();
+            var reloadedPlacements = reloaded.PlacementChunks.Where(p => p.TagsIndex >= 0).ToList();
+            Assert.Equal(origPlacements.Count, reloadedPlacements.Count);
+
+            for (int i = 0; i < origPlacements.Count; i++)
+            {
+                var o = origPlacements[i];
+                var r = reloadedPlacements[i];
+                Assert.Equal(o.TagsIndex, r.TagsIndex);
+                Assert.Equal(o.ObjectType, r.ObjectType);
+                Assert.Equal(o.SpawnCoords.X, r.SpawnCoords.X);
+                Assert.Equal(o.SpawnCoords.Y, r.SpawnCoords.Y);
+                Assert.Equal(o.SpawnCoords.Z, r.SpawnCoords.Z);
+            }
+
+            // Verify quota values match
+            for (int i = 0; i < origQuotaCount; i++)
+            {
+                Assert.Equal(original.TagIndex[i].RunTimeMinimum, reloaded.TagIndex[i].RunTimeMinimum);
+                Assert.Equal(original.TagIndex[i].RunTimeMaximum, reloaded.TagIndex[i].RunTimeMaximum);
+                Assert.Equal(original.TagIndex[i].CountOnMap, reloaded.TagIndex[i].CountOnMap);
+            }
+
+            // Byte-level comparison of mvar chunks
+            byte[] finalMvar = blf2.GetChunk("mvar")!.Data;
+            Assert.Equal(origMvar.Length, finalMvar.Length);
+
+            int diffCount = 0;
+            for (int i = 0; i < origMvar.Length; i++)
+            {
+                if (origMvar[i] != finalMvar[i]) diffCount++;
+            }
+            Console.WriteLine($"Round-trip: {origMvar.Length} bytes, {diffCount} bytes differ");
+            Assert.Equal(0, diffCount);
+
+            Console.WriteLine("H4 MCC round-trip write: PASS (byte-perfect)");
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
 }

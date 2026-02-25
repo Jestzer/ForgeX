@@ -40,7 +40,7 @@ public class MccHalo4MapVariant : IMapVariantData
     public List<PlacementChunk> PlacementChunks { get; set; } = new();
     public TagDatabase? Tags => null;
     public Halo4PaletteDatabase? Palette { get; private set; }
-    public bool CanWrite => false; // Read-only until write path is verified
+    public bool CanWrite => true;
 
     private int _numberOfQuotas;
 
@@ -96,11 +96,12 @@ public class MccHalo4MapVariant : IMapVariantData
     private bool _stringIsCompressed;
     private byte[] _stringBufferData = Array.Empty<byte>();
 
-    // Opaque data sections for future round-trip writing
+    // Opaque data sections for round-trip writing
     private byte[] _intermediateData = Array.Empty<byte>(); // Between objects and quotas
     private int _intermediateBitCount;
     private byte[] _postQuotaData = Array.Empty<byte>();    // After quotas to end of packed data
     private int _postQuotaBitCount;
+    private byte[] _trailingData = Array.Empty<byte>();     // Unpacked data after packed bitstream
 
     public MccHalo4MapVariant(BlfFile blfFile)
     {
@@ -118,6 +119,14 @@ public class MccHalo4MapVariant : IMapVariantData
         int packedLenBytes = (payload[20] << 24) | (payload[21] << 16) |
                              (payload[22] << 8) | payload[23];
         int packedBits = packedLenBytes * 8;
+
+        // Store trailing data (unpacked content after packed bitstream)
+        int trailingStart = 24 + packedLenBytes;
+        if (trailingStart < payload.Length)
+        {
+            _trailingData = new byte[payload.Length - trailingStart];
+            Array.Copy(payload, trailingStart, _trailingData, 0, _trailingData.Length);
+        }
 
         // Store raw payload for quota search
         _rawPayload = payload;
@@ -333,13 +342,17 @@ public class MccHalo4MapVariant : IMapVariantData
 
             // Position: point_in_bounds flag + ALWAYS adaptive encoding (H4 difference)
             bool pointInBounds = bits.ReadBool();
-            float px = ReachPositionEncoding.DecodePosition(bits, bitsX, WorldBoundsXMin, WorldBoundsXMax);
-            float py = ReachPositionEncoding.DecodePosition(bits, bitsY, WorldBoundsYMin, WorldBoundsYMax);
-            float pz = ReachPositionEncoding.DecodePosition(bits, bitsZ, WorldBoundsZMin, WorldBoundsZMax);
+            var (px, rawPx) = ReachPositionEncoding.DecodePositionRaw(bits, bitsX, WorldBoundsXMin, WorldBoundsXMax);
+            var (py, rawPy) = ReachPositionEncoding.DecodePositionRaw(bits, bitsY, WorldBoundsYMin, WorldBoundsYMax);
+            var (pz, rawPz) = ReachPositionEncoding.DecodePositionRaw(bits, bitsZ, WorldBoundsZMin, WorldBoundsZMax);
             placement.HasPosition = pointInBounds;
+            placement.RawPositionX = rawPx;
+            placement.RawPositionY = rawPy;
+            placement.RawPositionZ = rawPz;
 
             // Orientation: 20-bit axis + 14-bit angle (same as Reach)
-            var (fi, fj, fk, ui, uj, uk) = ReachOrientationConverter.ReadOrientation(bits);
+            var (fi, fj, fk, ui, uj, uk, axisIsDefault, axisRaw, angleRaw) =
+                ReachOrientationConverter.ReadOrientationRaw(bits);
             var (yaw, pitch, roll) = OrientationConverter.ToYawPitchRoll(fi, fj, fk, ui, uj, uk);
 
             placement.SpawnCoords = new SpawnCoords
@@ -347,6 +360,12 @@ public class MccHalo4MapVariant : IMapVariantData
                 X = px, Y = py, Z = pz,
                 Yaw = yaw, Pitch = pitch, Roll = roll
             };
+
+            // Store raw encoded values for lossless round-trip writing
+            placement.OrientationAxisIsDefault = axisIsDefault;
+            placement.OrientationAxisRaw = axisRaw;
+            placement.OrientationAngleRaw = angleRaw;
+            placement.HasRawPackedData = true;
 
             // spawn_relative_to: 10-bit unsigned, stored as value+1
             placement.SpawnRelativeTo = (int)bits.ReadInteger(10) - 1;
@@ -697,16 +716,374 @@ public class MccHalo4MapVariant : IMapVariantData
         }
     }
 
-    // ======== Interface methods (read-only stubs) ========
+    // ======== Write methods ========
 
     public void SaveAll()
     {
-        throw new NotSupportedException("Halo 4 MCC .mvar write support is not yet implemented.");
+        var bits = new BitWriter();
+        WriteContentItemMetadata(bits);
+        WriteMapVariantHeader(bits);
+        WriteStringTable(bits);
+        WriteVariantObjects(bits);
+
+        // Intermediate opaque section between objects and quotas
+        if (_intermediateBitCount > 0)
+            bits.WriteRawBits(_intermediateData, _intermediateBitCount);
+
+        WriteQuotas(bits);
+
+        // Post-quota opaque section
+        if (_postQuotaBitCount > 0)
+            bits.WriteRawBits(_postQuotaData, _postQuotaBitCount);
+
+        byte[] payload = bits.ToArray();
+
+        // Build full mvar chunk data: 24-byte prefix + packed data + trailing data
+        byte[] fullData = new byte[24 + payload.Length + _trailingData.Length];
+        Array.Copy(_prefix, 0, fullData, 0, 20); // original SHA-1 hash
+        // Update packed length (4 bytes BE)
+        int len = payload.Length;
+        fullData[20] = (byte)(len >> 24);
+        fullData[21] = (byte)(len >> 16);
+        fullData[22] = (byte)(len >> 8);
+        fullData[23] = (byte)len;
+        Array.Copy(payload, 0, fullData, 24, payload.Length);
+        // Append trailing data (unpacked content after packed bitstream)
+        if (_trailingData.Length > 0)
+            Array.Copy(_trailingData, 0, fullData, 24 + payload.Length, _trailingData.Length);
+
+        _blfFile.UpdateChunkData("mvar", fullData);
+        _blfFile.Write();
     }
 
+    /// <summary>
+    /// No-op: SaveAll() handles all writing in one pass for packed format.
+    /// </summary>
     public void WriteHeader() { }
+
+    /// <summary>
+    /// No-op: SaveAll() handles all writing in one pass for packed format.
+    /// </summary>
     public void WritePlacement(PlacementChunk chunk) { }
+
+    /// <summary>
+    /// No-op: SaveAll() handles all writing in one pass for packed format.
+    /// </summary>
     public void WriteTagIndexEntry(TagIndexEntry entry) { }
+
+    private void WriteContentItemMetadata(BitWriter bits)
+    {
+        // file_type: 4-bit unsigned, stored as value+1
+        bits.WriteInteger((uint)(_metaFileType + 1), 4);
+        bits.WriteInteger(_metaSizeInBytes, 32);
+        bits.WriteInteger64(_metaUniqueId, 64);
+        bits.WriteInteger64(_metaParentUniqueId, 64);
+        bits.WriteInteger64(_metaRootUniqueId, 64);
+        bits.WriteInteger64(_metaGameId, 64);
+
+        // H4: activity is 2-bit raw (NOT value+1 like Reach)
+        bits.WriteInteger(_metaActivity, 2);
+
+        bits.WriteInteger((uint)_metaGameMode, 3);
+        bits.WriteInteger(_metaGameEngineType, 3);
+        bits.WriteSignedInteger(MapId, 32);
+        bits.WriteSignedInteger(_metaMegaloCategoryIndex, 8);
+        bits.WriteInteger64(_metaCreationTime, 64);
+        bits.WriteInteger64(_metaCreatorXuid, 64);
+        bits.WriteStringUtf8(MapAuthor, 16);
+        bits.WriteBool(_metaCreatorXuidIsOnline);
+        bits.WriteInteger64(_metaModificationTime, 64);
+        bits.WriteInteger64(_metaModifierXuid, 64);
+        bits.WriteStringUtf8(_metaModifierName, 16);
+        bits.WriteBool(_metaModifierXuidIsOnline);
+        bits.WriteStringWchar(VariantName, 128);
+        bits.WriteStringWchar(VariantDescription, 128);
+
+        if (_metaFileType == 3 || _metaFileType == 4)
+            bits.WriteSignedInteger(_metaFilmSeconds, 32);
+        else if (_metaFileType == 6)
+            bits.WriteSignedInteger(_metaIconIndex, 8);
+
+        if (_metaActivity == 2)
+            bits.WriteInteger(_metaHopperIdentifier, 16);
+
+        if (_metaGameMode == 1)
+        {
+            bits.WriteInteger(_metaCampaignId, 8);
+            bits.WriteInteger(_metaCampaignDifficulty, 2);
+            bits.WriteInteger(_metaCampaignScoring, 2);
+            bits.WriteInteger(_metaCampaignInsertion, 8);
+            bits.WriteInteger(_metaCampaignPrimarySkulls, 16);
+            bits.WriteInteger(_metaCampaignSecondarySkulls, 16);
+        }
+        else if (_metaGameMode == 2)
+        {
+            bits.WriteInteger(_metaFirefightDifficulty, 2);
+            bits.WriteInteger(_metaFirefightPrimary, 16);
+            bits.WriteInteger(_metaFirefightSecondary, 16);
+        }
+    }
+
+    private void WriteMapVariantHeader(BitWriter bits)
+    {
+        bits.WriteInteger(_hdrVariantVersion, 8);
+        bits.WriteInteger(_hdrMapRsaHash, 32);
+        bits.WriteInteger(_hdrScenarioPaletteCrc, 32);
+        bits.WriteInteger((uint)_numberOfQuotas, 9);
+        bits.WriteInteger(_hdrMapIdCopy, 32);
+        bits.WriteBool(_hdrBuiltIn);
+        bits.WriteBool(_hdrBuiltFromXml);
+
+        bits.WriteRawFloat(WorldBoundsXMin);
+        bits.WriteRawFloat(WorldBoundsXMax);
+        bits.WriteRawFloat(WorldBoundsYMin);
+        bits.WriteRawFloat(WorldBoundsYMax);
+        bits.WriteRawFloat(WorldBoundsZMin);
+        bits.WriteRawFloat(WorldBoundsZMax);
+
+        bits.WriteInteger((uint)MaximumBudget, 32);
+        bits.WriteInteger((uint)CurrentBudget, 32);
+    }
+
+    private void WriteStringTable(BitWriter bits)
+    {
+        bits.WriteInteger((uint)_stringCount, 9);
+
+        for (int i = 0; i < _stringCount; i++)
+        {
+            var (exists, offset) = _stringEntries[i];
+            bits.WriteBool(exists);
+            if (exists)
+                bits.WriteInteger((uint)offset, 12);
+        }
+
+        if (_stringCount > 0)
+        {
+            bits.WriteInteger((uint)_stringBufferSize, 13);
+            bits.WriteBool(_stringIsCompressed);
+
+            if (_stringIsCompressed)
+            {
+                bits.WriteInteger((uint)_stringBufferData.Length, 13);
+            }
+
+            bits.WriteRawData(_stringBufferData);
+        }
+    }
+
+    private void WriteVariantObjects(BitWriter bits)
+    {
+        var (bitsX, bitsY, bitsZ) = ReachPositionEncoding.ComputeAxisBitCounts(
+            WorldBoundsXMin, WorldBoundsXMax,
+            WorldBoundsYMin, WorldBoundsYMax,
+            WorldBoundsZMin, WorldBoundsZMax);
+
+        for (int i = 0; i < VariantObjectCount; i++)
+        {
+            var placement = i < PlacementChunks.Count ? PlacementChunks[i] : null;
+            bool exists = placement != null && placement.ChunkType == ChunkType.Added;
+
+            bits.WriteBool(exists);
+            if (!exists)
+                continue;
+
+            // flags: 2-bit
+            bits.WriteInteger(placement!.PackedFlags, 2);
+
+            // variant_quota_index: index encoding
+            WriteIndexEncoded(bits, placement.TagsIndex, 8);
+
+            // variant_index: index encoding
+            WriteIndexEncoded(bits, placement.VariantIndex, 5);
+
+            // Position: write point_in_bounds flag, always adaptive encoding
+            bits.WriteBool(placement.HasPosition);
+
+            var coords = placement.SpawnCoords;
+            if (placement.HasRawPackedData)
+            {
+                // Use raw quantized values for lossless round-trip
+                bits.WriteInteger(placement.RawPositionX, bitsX);
+                bits.WriteInteger(placement.RawPositionY, bitsY);
+                bits.WriteInteger(placement.RawPositionZ, bitsZ);
+            }
+            else
+            {
+                bits.WriteInteger(
+                    ReachPositionEncoding.EncodePosition(coords.X, bitsX, WorldBoundsXMin, WorldBoundsXMax), bitsX);
+                bits.WriteInteger(
+                    ReachPositionEncoding.EncodePosition(coords.Y, bitsY, WorldBoundsYMin, WorldBoundsYMax), bitsY);
+                bits.WriteInteger(
+                    ReachPositionEncoding.EncodePosition(coords.Z, bitsZ, WorldBoundsZMin, WorldBoundsZMax), bitsZ);
+            }
+
+            // Orientation: use raw encoded values if available for lossless round-trip
+            if (placement.HasRawPackedData)
+            {
+                ReachOrientationConverter.WriteOrientationRaw(bits,
+                    placement.OrientationAxisIsDefault,
+                    placement.OrientationAxisRaw,
+                    placement.OrientationAngleRaw);
+            }
+            else
+            {
+                var (fi, fj, fk, ui, uj, uk) = OrientationConverter.ToForwardUp(
+                    coords.Yaw, coords.Pitch, coords.Roll);
+                ReachOrientationConverter.WriteOrientation(bits, fi, fj, fk, ui, uj, uk);
+            }
+
+            // spawn_relative_to: 10-bit, stored as value+1
+            bits.WriteInteger((uint)(placement.SpawnRelativeTo + 1), 10);
+
+            // H4-specific: scale (6-bit) and isLocked (1-bit)
+            bits.WriteInteger(placement.H4ScaleRaw, 6);
+            bits.WriteBool(placement.H4IsLocked);
+
+            // Multiplayer object properties (H4 field order)
+            WriteMultiplayerObjectProperties(bits, placement);
+        }
+    }
+
+    private void WriteMultiplayerObjectProperties(BitWriter bits, PlacementChunk placement)
+    {
+        // boundary.shape: 2-bit
+        bits.WriteInteger(placement.BoundaryShape, 2);
+
+        switch (placement.BoundaryShape)
+        {
+            case 1: // sphere
+                bits.WriteQuantizedReal(placement.BoundarySize, 11, 0f, 200f, false);
+                break;
+            case 2: // cylinder
+                bits.WriteQuantizedReal(placement.BoundarySize, 11, 0f, 200f, false);
+                bits.WriteQuantizedReal(placement.BoundaryPositiveHeight, 11, 0f, 200f, false);
+                bits.WriteQuantizedReal(placement.BoundaryNegativeHeight, 11, 0f, 200f, false);
+                break;
+            case 3: // box
+                bits.WriteQuantizedReal(placement.BoundarySize, 11, 0f, 200f, false);
+                bits.WriteQuantizedReal(placement.BoundaryBoxLength, 11, 0f, 200f, false);
+                bits.WriteQuantizedReal(placement.BoundaryPositiveHeight, 11, 0f, 200f, false);
+                bits.WriteQuantizedReal(placement.BoundaryNegativeHeight, 11, 0f, 200f, false);
+                break;
+        }
+
+        // H4: object_type is 6-bit (vs 5-bit in Reach)
+        bits.WriteInteger((uint)placement.ObjectType, 6);
+
+        // H4-specific: unk10 (10-bit)
+        bits.WriteInteger(placement.H4Unk10, 10);
+
+        // team: 4-bit raw (stored as value+1, use raw for round-trip fidelity)
+        bits.WriteInteger(placement.ReachTeamRaw, 4);
+
+        // respawn_time: 8-bit
+        bits.WriteInteger(placement.RespawnTime, 8);
+
+        // primary_change_color_index: index encoding
+        WriteIndexEncoded(bits, placement.PrimaryColorIndex, 3);
+
+        // placement_flags: 8-bit
+        bits.WriteInteger(placement.Flags, 8);
+
+        // spawn_sequence: 8-bit
+        bits.WriteInteger(placement.SpawnSequence, 8);
+
+        // 4 label slots: each index encoding
+        WriteIndexEncoded(bits, placement.LabelIndex, 8);
+        WriteIndexEncoded(bits, placement.LabelIndex2, 8);
+        WriteIndexEncoded(bits, placement.LabelIndex3, 8);
+        WriteIndexEncoded(bits, placement.LabelIndex4, 8);
+
+        // Type-specific conditionals
+        WriteTypeConditionals(bits, placement);
+    }
+
+    private void WriteTypeConditionals(BitWriter bits, PlacementChunk placement)
+    {
+        int type = placement.ObjectType;
+
+        if (type == 1) // Weapon
+        {
+            bits.WriteInteger(placement.SpareClips, 8);
+        }
+
+        if (type == 0 || (type >= 2 && type <= 6)) // SimpleObject types
+        {
+            var data = placement.H4TypeConditionalData;
+            bits.WriteInteger(data != null && data.Length > 0 ? data[0] : (byte)0, 5);
+            bits.WriteInteger(data != null && data.Length > 1 ? data[1] : (byte)0, 5);
+        }
+
+        if (type >= 13 && type <= 15) // Teleporter types
+        {
+            bits.WriteInteger(placement.TeleporterChannel, 5);
+            bits.WriteInteger(placement.TeleporterPassability, 5);
+        }
+
+        if (type == 20) // NamedLocation
+        {
+            // 9-bit StreamPlusOne (value stored as value+1)
+            bits.WriteInteger((uint)(placement.LocationNameIndex + 1), 9);
+        }
+
+        if (type == 12) // Dispenser (VehiclePad)
+        {
+            var data = placement.H4TypeConditionalData;
+            bits.WriteInteger(data != null && data.Length > 0 ? data[0] : (byte)0, 8);
+        }
+
+        if (type == 31) // TraitZone
+        {
+            var data = placement.H4TypeConditionalData;
+            bits.WriteInteger(data != null && data.Length > 0 ? data[0] : (byte)0, 5);
+        }
+
+        if (type >= 21 && type <= 27) // SpecialObject types
+        {
+            var data = placement.H4TypeConditionalData;
+            bits.WriteInteger(data != null && data.Length > 0 ? data[0] : (byte)0, 5);
+            bits.WriteInteger(data != null && data.Length > 1 ? data[1] : (byte)0, 5);
+        }
+
+        if (type == 32) // InitialOrdnanceDrop
+        {
+            var data = placement.H4TypeConditionalData;
+            bits.WriteInteger(data != null && data.Length > 0 ? data[0] : (byte)0, 5);
+            bits.WriteInteger(data != null && data.Length > 1 ? data[1] : (byte)0, 8);
+            ushort val16 = 0;
+            if (data != null && data.Length > 3)
+                val16 = (ushort)((data[2] << 8) | data[3]);
+            bits.WriteInteger(val16, 16);
+        }
+
+        if (type == 33) // RandomOrdnanceDrop
+        {
+            var data = placement.H4TypeConditionalData;
+            for (int i = 0; i < 8; i++)
+                bits.WriteInteger(data != null && data.Length > i ? data[i] : (byte)0, 8);
+        }
+
+        if (type == 34) // ObjectiveOrdnanceDrop
+        {
+            var data = placement.H4TypeConditionalData;
+            for (int i = 0; i < 9; i++)
+                bits.WriteInteger(data != null && data.Length > i ? data[i] : (byte)0, 8);
+        }
+
+        // Type 35 (PersonalOrdnanceDrop): no additional data
+    }
+
+    private void WriteQuotas(BitWriter bits)
+    {
+        int count = Math.Min(MaxQuotas, _numberOfQuotas);
+        for (int i = 0; i < count; i++)
+        {
+            var entry = i < TagIndex.Count ? TagIndex[i] : new TagIndexEntry();
+            bits.WriteInteger(entry.RunTimeMinimum, 8);
+            bits.WriteInteger(entry.RunTimeMaximum, 8);
+            bits.WriteInteger(entry.CountOnMap, 8);
+        }
+    }
 
     public TagIndexEntry? FindTagIndexEntry(string tagClass, string tagPath, int tagsIndex)
     {
@@ -735,6 +1112,19 @@ public class MccHalo4MapVariant : IMapVariantData
         bool absent = bits.ReadBool();
         if (absent) return -1;
         return (int)bits.ReadInteger(valueBits);
+    }
+
+    private static void WriteIndexEncoded(BitWriter bits, int value, int valueBits)
+    {
+        if (value < 0)
+        {
+            bits.WriteBool(true); // absent
+        }
+        else
+        {
+            bits.WriteBool(false);
+            bits.WriteInteger((uint)value, valueBits);
+        }
     }
 
     private void LinkPlacements()

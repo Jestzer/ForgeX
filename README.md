@@ -10,7 +10,7 @@ A Halo Forge usermap editor for Xbox 360 and MCC formats.
 | MCC Halo 3 BLF (.mvar) - packed and unpacked | Yes | Yes |
 | MCC Halo 3 compressed (.mvar) | Yes | Yes (auto-decompression) |
 | MCC Halo: Reach BLF (.mvar) | Yes | Yes |
-| MCC Halo 4 BLF (.mvar) | Yes | No |
+| MCC Halo 4 BLF (.mvar) | Yes | Yes |
 
 ## Building
 

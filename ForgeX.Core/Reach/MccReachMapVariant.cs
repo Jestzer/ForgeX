@@ -642,7 +642,7 @@ public class MccReachMapVariant : IMapVariantData
         for (int i = 0; i < VariantObjectCount; i++)
         {
             var placement = i < PlacementChunks.Count ? PlacementChunks[i] : null;
-            bool exists = placement != null && placement.TagsIndex >= 0;
+            bool exists = placement != null && placement.ChunkType == ChunkType.Added;
 
             bits.WriteBool(exists);
             if (!exists)

@@ -52,6 +52,49 @@ public static class ReachOrientationConverter
     }
 
     /// <summary>
+    /// Reads orientation raw values from the bitstream for lossless round-trip.
+    /// Returns the decoded forward/up vectors AND the raw encoded values.
+    /// </summary>
+    public static (float FwdI, float FwdJ, float FwdK, float UpI, float UpJ, float UpK,
+        bool AxisIsDefault, uint AxisRaw, uint AngleRaw)
+        ReadOrientationRaw(BitReader bits)
+    {
+        bool axisIsDefault = bits.ReadBool();
+        uint axisRaw = 0;
+
+        float axisI, axisJ, axisK;
+        if (axisIsDefault)
+        {
+            axisI = 0f; axisJ = 0f; axisK = 1f;
+        }
+        else
+        {
+            axisRaw = bits.ReadInteger(20);
+            (axisI, axisJ, axisK) = Decode20BitAxis(axisRaw);
+        }
+
+        uint angleRaw = bits.ReadInteger(14);
+        float angle = DecodeAngle14(angleRaw);
+
+        var (fwdI, fwdJ, fwdK) = OrientationConverter.AngleToAxesInternal(
+            axisI, axisJ, axisK, angle);
+
+        return (fwdI, fwdJ, fwdK, axisI, axisJ, axisK, axisIsDefault, axisRaw, angleRaw);
+    }
+
+    /// <summary>
+    /// Writes orientation using pre-encoded raw values for lossless round-trip.
+    /// </summary>
+    public static void WriteOrientationRaw(BitWriter bits,
+        bool axisIsDefault, uint axisRaw, uint angleRaw)
+    {
+        bits.WriteBool(axisIsDefault);
+        if (!axisIsDefault)
+            bits.WriteInteger(axisRaw, 20);
+        bits.WriteInteger(angleRaw, 14);
+    }
+
+    /// <summary>
     /// Decodes a 20-bit raw value to a unit vector using cube-face projection.
     /// Uses lookup table entry [14]: divisor=174762, subdivisions=417.
     /// </summary>

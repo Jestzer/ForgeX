@@ -39,6 +39,15 @@ public class PlacementChunk
     public int LocationNameIndex { get; set; } = -1;
     public uint ReachTeamRaw { get; set; } // Raw 4-bit team value for Reach/H4 round-trip
 
+    // Raw packed encoding for Reach/H4 lossless round-trip
+    public bool HasRawPackedData { get; set; }         // True when raw encoded values are available
+    public uint RawPositionX { get; set; }             // Raw quantized X position
+    public uint RawPositionY { get; set; }             // Raw quantized Y position
+    public uint RawPositionZ { get; set; }             // Raw quantized Z position
+    public bool OrientationAxisIsDefault { get; set; } // 1-bit: axis is (0,0,1)
+    public uint OrientationAxisRaw { get; set; }       // 20-bit encoded axis (if not default)
+    public uint OrientationAngleRaw { get; set; }      // 14-bit encoded angle
+
     // Halo 4-specific fields (round-trip storage)
     public byte H4ScaleRaw { get; set; }                // 6-bit raw scale value
     public bool H4IsLocked { get; set; }                // 1-bit locked state

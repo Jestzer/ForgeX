@@ -69,6 +69,21 @@ public static class ReachPositionEncoding
     }
 
     /// <summary>
+    /// Reads a raw position value from the bitstream without decoding.
+    /// Returns both the decoded float and the raw uint for lossless round-trip.
+    /// </summary>
+    public static (float Value, uint Raw) DecodePositionRaw(BitReader bits, int bitCount, float min, float max)
+    {
+        if (bitCount == 0) return (min, 0);
+
+        uint raw = bits.ReadInteger(bitCount);
+        float range = max - min;
+        float divisor = 1u << bitCount;
+        float value = min + (raw + 0.5f) * (range / divisor);
+        return (value, raw);
+    }
+
+    /// <summary>
     /// Encodes a world position value for the bitstream using the adaptive encoding.
     /// Inverse of DecodePosition.
     /// Formula: raw = floor((worldPos - min) * 2^bits / range - 0.5)
