@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ForgeX.Core.Blf;
 using ForgeX.Core.Halo3;
+using ForgeX.Core.Halo4;
 using ForgeX.Core.Reach;
 using ForgeX.Core.Xbox360;
 using ForgeX.UI.Services;
@@ -96,11 +97,15 @@ public partial class MainWindowViewModel : ViewModelBase
 
                 if (isReachBlf)
                 {
-                    // Reach Xbox 360: sandbox.map is a BLF file with packed mvar bitstream
+                    // Reach/H4 Xbox 360: sandbox.map is a BLF file with packed mvar bitstream
                     _reachStfsTempPath = Path.GetTempFileName() + ".mvar";
                     File.WriteAllBytes(_reachStfsTempPath, sandboxData);
                     var blf = new BlfFile(_reachStfsTempPath);
-                    _variant = new MccReachMapVariant(blf);
+                    short stfsMvarVersion = blf.GetMvarMajorVersion();
+                    if (stfsMvarVersion == 50)
+                        _variant = new MccHalo4MapVariant(blf);
+                    else
+                        _variant = new MccReachMapVariant(blf);
                 }
                 else
                 {
@@ -112,10 +117,12 @@ public partial class MainWindowViewModel : ViewModelBase
             }
             else if (magicStr == "_blf")
             {
-                // MCC BLF container (.mvar file) — detect H3 vs Reach by mvar version
+                // MCC BLF container (.mvar file) — detect H3/Reach/H4 by mvar version
                 var blf = new BlfFile(filePath);
                 short mvarVersion = blf.GetMvarMajorVersion();
-                if (mvarVersion == 31)
+                if (mvarVersion == 50)
+                    _variant = new MccHalo4MapVariant(blf);
+                else if (mvarVersion == 31)
                     _variant = new MccReachMapVariant(blf);
                 else
                     _variant = new MccMapVariant(blf);
@@ -132,7 +139,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
             IsFileLoaded = true;
             string formatLabel = IsXbox360Format
-                ? (_variant is MccReachMapVariant ? "Xbox 360 Reach" : "Xbox 360")
+                ? (_variant is MccHalo4MapVariant ? "Xbox 360 Halo 4"
+                    : _variant is MccReachMapVariant ? "Xbox 360 Reach" : "Xbox 360")
+                : _variant is MccHalo4MapVariant ? "MCC Halo 4"
                 : _variant is MccReachMapVariant ? "MCC Reach" : "MCC";
             StatusMessage = $"Loaded ({formatLabel}): {Path.GetFileName(filePath)}";
             if (_variant is MccMapVariant mcc && mcc.DecompressedPath != null)

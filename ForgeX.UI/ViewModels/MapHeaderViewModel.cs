@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using ForgeX.Core.Halo3;
+using ForgeX.Core.Halo4;
 using ForgeX.Core.Reach;
 
 namespace ForgeX.UI.ViewModels;
@@ -25,6 +26,7 @@ public partial class MapHeaderViewModel : ViewModelBase
         MaximumBudget = variant.MaximumBudget;
         CurrentBudget = variant.CurrentBudget;
         MapName = variant.Tags?.MapName
+            ?? Halo4MapDefinitions.GetMapName(variant.MapId)
             ?? ReachMapDefinitions.GetMapName(variant.MapId)
             ?? $"Unknown ({variant.MapId})";
     }

@@ -1,5 +1,6 @@
 using ForgeX.Core.Blf;
 using ForgeX.Core.Halo3;
+using ForgeX.Core.Halo4;
 using ForgeX.Core.IO;
 using ForgeX.Core.Reach;
 
@@ -747,5 +748,115 @@ public class MccLoadTest
         Assert.InRange(yaw2, yaw - 0.01f, yaw + 0.01f);
         Assert.InRange(pitch2, pitch - 0.01f, pitch + 0.01f);
         Assert.InRange(roll2, roll - 0.01f, roll + 0.01f);
+    }
+
+    private const string H4MccDir = "/run/media/james/m2-ssd/Program Files (x86)/Steam/steamapps/common/Halo The Master Chief Collection/halo4/map_variants/";
+
+    [Fact]
+    public void Halo4PaletteResolvesObjectNames()
+    {
+        // Test with the Grifball Court .mvar (known mapId 10245)
+        string path = Path.Combine(H4MccDir, "grifballcourt.mvar");
+        if (!File.Exists(path))
+        {
+            Console.WriteLine("SKIP: H4 MCC .mvar not found");
+            return;
+        }
+
+        var blf = new BlfFile(path);
+        var variant = new MccHalo4MapVariant(blf);
+
+        Console.WriteLine($"MapId: {variant.MapId}, Name: {variant.VariantName}");
+        Assert.Equal(10245, variant.MapId);
+        Assert.NotNull(variant.Palette);
+
+        // All maps share the same first 31 weapons and 8 armor abilities
+        Assert.Equal("Magnum", variant.Palette.GetQuotaName(0));
+        Assert.Equal("Weapon", variant.Palette.GetCategory(0));
+        Assert.Equal("Assault Rifle", variant.Palette.GetQuotaName(1));
+        Assert.Equal("Battle Rifle", variant.Palette.GetQuotaName(2));
+        Assert.Equal("Armor Ability", variant.Palette.GetCategory(31)); // Jetpack
+        Assert.Equal("Gadget", variant.Palette.GetCategory(39));        // Explosives
+
+        // Grifball has only 90 entries (no Dominion, fewer vehicles)
+        Assert.Equal("Vehicle", variant.Palette.GetCategory(72));       // Mongoose (at 72, not 82)
+
+        // Verify most entries are resolved (some may be beyond palette size)
+        int unresolvedCount = 0;
+        for (int i = 0; i < variant.TagIndex.Count; i++)
+        {
+            var entry = variant.TagIndex[i];
+            if (entry.Tag != null && entry.Tag.Class == "h4_object")
+            {
+                unresolvedCount++;
+                Console.WriteLine($"  Unresolved [{i}]: {entry.Tag.Path} (min={entry.RunTimeMinimum} max={entry.RunTimeMaximum} count={entry.CountOnMap})");
+            }
+        }
+        Console.WriteLine($"Unresolved h4_object entries: {unresolvedCount}");
+        // Allow a few entries beyond palette size to remain unresolved
+        Assert.True(unresolvedCount <= 5, $"Too many unresolved h4_object entries: {unresolvedCount}");
+
+        // Print first 10 active placements with resolved names
+        Console.WriteLine("\nFirst 10 active placements:");
+        foreach (var p in variant.PlacementChunks.Where(p => p.TagsIndex >= 0).Take(10))
+        {
+            string name = variant.Palette.GetVariantName(p.TagsIndex, p.VariantIndex);
+            Console.WriteLine($"  [{name}] Quota#{p.TagsIndex} Var={p.VariantIndex}");
+        }
+
+        // Print all unique categories found
+        var categories = variant.TagIndex
+            .Where(e => e.Tag != null)
+            .Select(e => e.Tag!.Class)
+            .Distinct()
+            .OrderBy(c => c);
+        Console.WriteLine($"\nCategories: {string.Join(", ", categories)}");
+    }
+
+    [Fact]
+    public void Halo4ForgeCanvasPaletteResolution()
+    {
+        // Test all forge canvas .mvar files that exist
+        var canvasFiles = new[] { "ca_forge_erosion_ascent.mvar", "ca_forge_bonanza_relay.mvar", "ca_forge_ravine_settler.mvar" };
+        bool anyTested = false;
+
+        foreach (var file in canvasFiles)
+        {
+            string path = Path.Combine(H4MccDir, file);
+            if (!File.Exists(path)) continue;
+
+            var blf = new BlfFile(path);
+            var variant = new MccHalo4MapVariant(blf);
+            Console.WriteLine($"\n{file}: MapId={variant.MapId}, Name={variant.VariantName}");
+
+            if (variant.Palette == null)
+            {
+                Console.WriteLine($"  No palette for mapId {variant.MapId}");
+                continue;
+            }
+
+            anyTested = true;
+
+            // Common entries should resolve
+            Assert.Equal("Magnum", variant.Palette.GetQuotaName(0));
+            Assert.Equal("Weapon", variant.Palette.GetCategory(0));
+
+            // Print all categories and first 5 placements
+            var categories = variant.TagIndex
+                .Where(e => e.Tag != null)
+                .Select(e => e.Tag!.Class)
+                .Distinct()
+                .OrderBy(c => c);
+            Console.WriteLine($"  Categories: {string.Join(", ", categories)}");
+
+            foreach (var p in variant.PlacementChunks.Where(p => p.TagsIndex >= 0).Take(5))
+            {
+                string name = variant.Palette.GetVariantName(p.TagsIndex, p.VariantIndex);
+                Console.WriteLine($"  [{name}] Quota#{p.TagsIndex} Var={p.VariantIndex}");
+            }
+        }
+
+        if (!anyTested)
+            Console.WriteLine("SKIP: No H4 MCC forge canvas .mvar files found");
     }
 }

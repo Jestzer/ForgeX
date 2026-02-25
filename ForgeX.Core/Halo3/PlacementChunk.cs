@@ -37,7 +37,16 @@ public class PlacementChunk
     public byte TeleporterChannel { get; set; }
     public byte TeleporterPassability { get; set; }
     public int LocationNameIndex { get; set; } = -1;
-    public uint ReachTeamRaw { get; set; } // Raw 4-bit team value for Reach round-trip
+    public uint ReachTeamRaw { get; set; } // Raw 4-bit team value for Reach/H4 round-trip
+
+    // Halo 4-specific fields (round-trip storage)
+    public byte H4ScaleRaw { get; set; }                // 6-bit raw scale value
+    public bool H4IsLocked { get; set; }                // 1-bit locked state
+    public ushort H4Unk10 { get; set; }                 // 10-bit unknown field
+    public int LabelIndex2 { get; set; } = -1;          // H4 second label slot
+    public int LabelIndex3 { get; set; } = -1;          // H4 third label slot
+    public int LabelIndex4 { get; set; } = -1;          // H4 fourth label slot
+    public byte[]? H4TypeConditionalData { get; set; }  // Raw type-conditional bits for round-trip
 
     // Flag bit accessors — definitions from Mjolnir ForgeLib/ForgeObject.cs
     public bool HideAtStart

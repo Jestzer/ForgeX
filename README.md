@@ -1,13 +1,16 @@
 # ForgeX
 
-A Halo 3 / Reach Forge usermap editor for Xbox 360 and MCC formats.
+A Halo Forge usermap editor for Xbox 360 and MCC formats.
 
 ## Supported Formats
 
-- **Xbox 360 STFS containers** (CON/LIVE/PIRS) - Full read/write
-- **MCC Halo 3 BLF (.mvar)** - Packed and unpacked, full read/write
-- **MCC Halo 3 compressed (.mvar)** - Auto-decompression, full read/write
-- **MCC Halo: Reach BLF (.mvar)** - Read-only
+| Format | Read | Write |
+|--------|------|-------|
+| Xbox 360 STFS containers (CON/LIVE/PIRS) | Yes | Yes |
+| MCC Halo 3 BLF (.mvar) - packed and unpacked | Yes | Yes |
+| MCC Halo 3 compressed (.mvar) | Yes | Yes (auto-decompression) |
+| MCC Halo: Reach BLF (.mvar) | Yes | Yes |
+| MCC Halo 4 BLF (.mvar) | Yes | No |
 
 ## Building
 
@@ -27,9 +30,10 @@ dotnet test
 ## Credits
 
 - **Jestzer** - Creator
-- **Supermodder911** - Original Forge editor
-- **Lord Zedd** - Research and documentation
-- **Assembly contributors** - Halo modding tooling
+- **Supermodder911** - Original creator of the Forge program for Xbox 360 Halo 3 usermaps
+- **Lord Zedd** - Vast majority of research and documentation used to make this possible
+- **Other Assembly and Forge contributors**
+- **Other contributors to the modding community whole made this possible**
 
 ## License
 

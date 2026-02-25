@@ -1,3 +1,5 @@
+using ForgeX.Core.Halo3;
+
 namespace ForgeX.Core.Reach;
 
 /// <summary>
@@ -5,7 +7,7 @@ namespace ForgeX.Core.Reach;
 /// Palette data sourced from Mjolnir Forge Editor (MIT license).
 /// https://github.com/Waffle1434/Mjolnir-Forge-Editor
 /// </summary>
-public class ReachPaletteDatabase
+public class ReachPaletteDatabase : IPaletteDatabase
 {
     private readonly List<QuotaInfo> _quotas = new();
 

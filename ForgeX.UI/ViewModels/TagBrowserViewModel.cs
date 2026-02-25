@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ForgeX.Core.Blf;
 using ForgeX.Core.Halo3;
+using ForgeX.Core.Halo4;
 using ForgeX.Core.Reach;
 
 namespace ForgeX.UI.ViewModels;
@@ -11,7 +12,7 @@ namespace ForgeX.UI.ViewModels;
 public partial class TagBrowserViewModel : ViewModelBase
 {
     private IMapVariantData? _variant;
-    private ReachPaletteDatabase? _palette;
+    private IPaletteDatabase? _palette;
     private bool _isLoadingSelection;
 
     /// <summary>
@@ -101,9 +102,10 @@ public partial class TagBrowserViewModel : ViewModelBase
         try
         {
             _variant = variant;
-            _palette = (variant as MccReachMapVariant)?.Palette;
+            _palette = (IPaletteDatabase?)(variant as MccReachMapVariant)?.Palette
+                    ?? (variant as MccHalo4MapVariant)?.Palette;
             CanWrite = variant.CanWrite;
-            IsMcc = variant is MccMapVariant or MccReachMapVariant;
+            IsMcc = variant is MccMapVariant or MccReachMapVariant or MccHalo4MapVariant;
             TagTree.Clear();
 
             // Build tree: group tag index entries by class
