@@ -130,6 +130,15 @@ public class TagDatabase
         if (crossMap != null)
             return crossMap;
 
+        // 5. Datum-index fallback: match by low 16 bits only (handles title update salt drift).
+        //    Only search this map's database — cross-map datum matching would be unreliable.
+        int datum = ident & 0xFFFF;
+        for (int i = 0; i < _tags.Count; i++)
+        {
+            if ((_tags[i].Ident & 0xFFFF) == datum)
+                return _tags[i];
+        }
+
         return null;
     }
 

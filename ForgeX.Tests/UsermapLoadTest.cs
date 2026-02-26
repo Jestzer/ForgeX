@@ -8458,9 +8458,8 @@ public class UsermapLoadTest
                 Console.WriteLine($"Quotas (matched): {matched}");
                 Console.WriteLine($"Quotas (unmatched): {unmatched}");
 
-                // List all resolved tags
                 foreach (var entry in variant.TagIndex.Where(e => e.Tag != null))
-                    Console.WriteLine($"  {entry.Ident:X8} → {entry.Tag!.Class} {entry.Tag.Path}");
+                    Console.WriteLine($"  {(uint)entry.Ident:X8} → {entry.Tag!.Class} {entry.Tag.Path}");
                 foreach (var entry in variant.TagIndex.Where(e => e.Tag == null && e.Ident != 0 && e.Ident != -1))
                     Console.WriteLine($"  {(uint)entry.Ident:X8} → UNMATCHED");
 

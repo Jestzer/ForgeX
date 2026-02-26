@@ -73,7 +73,7 @@ public class MccMapVariant : IMapVariantData
     private const int OffsetPlacements = 308;   // 640 × 84 bytes
     private const int PlacementSize = 84;
     private const int PlacementCount = 640;
-    private const int OffsetTagIndex = 54420;   // 256 × 12 bytes
+    private const int OffsetTagIndex = 54096;   // 256 × 12 bytes
     private const int TagIndexEntrySize = 12;
     private const int TagIndexCount = 256;
 
