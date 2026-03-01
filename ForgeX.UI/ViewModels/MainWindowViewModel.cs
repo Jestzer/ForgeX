@@ -89,7 +89,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 _container = new StfsContainer(filePath);
 
                 var sandboxEntry = _container.GetEntryByFileName("sandbox.map")
-                    ?? throw new InvalidDataException("Container does not contain a sandbox.map file.");
+                    ?? throw new InvalidDataException("Container does not contain a sandbox.map file. This is likely not a Forge map or is corrupted.");
                 var sandboxData = sandboxEntry.GetData();
 
                 // Detect Reach vs H3 by checking if sandbox.map is a BLF file

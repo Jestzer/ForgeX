@@ -40,7 +40,7 @@ public class MapVariant : IMapVariantData
     {
         Container = container;
         var entry = container.GetEntryByFileName("sandbox.map")
-            ?? throw new InvalidDataException("Container does not contain a sandbox.map file.");
+            ?? throw new InvalidDataException("Container does not contain a sandbox.map file. This is likely not a Forge map or is corrupted.");
 
         var data = entry.GetData();
         _sandboxStream = new MemoryStream(data);
